@@ -1,0 +1,30 @@
+@LIT_SITE_CFG_IN_HEADER@
+
+import sys
+
+config.llvm_tools_dir = "@LLVM_TOOLS_DIR@"
+config.llvm_lib_dir = "@LLVM_LIBRARY_DIR@"
+config.llvm_shlib_dir = "@CMAKE_LIBRARY_OUTPUT_DIRECTORY@"
+config.llvm_shlib_ext = "@SHLIBEXT@"
+config.test_exec_root = "@CMAKE_CURRENT_BINARY_DIR@"
+config.lit_tools_dir = "@LLVM_LIT_TOOLS_DIR@"
+
+config.intel_quantum_libraries = "@CMAKE_LIBRARY_OUTPUT_DIRECTORY@"
+
+## config.build_shared_libs = @BUILD_SHARED_LIBS@
+## config.has_plugins = @LLVM_ENABLE_PLUGINS@
+
+# Support substitution of the tools_dir with user parameters. This is
+# used when we can't determine the tool dir at configuration time.
+try:
+    config.llvm_tools_dir = config.llvm_tools_dir % lit_config.params
+    config.llvm_shlib_dir = config.llvm_shlib_dir % lit_config.params
+except KeyError:
+    e = sys.exc_info()[1]
+    key, = e.args
+    lit_config.fatal("unable to find %r parameter, use '--param=%s=VALUE'" % (key,key))
+
+import lit.llvm
+lit.llvm.initialize(lit_config, config)
+
+lit_config.load_config(config, "@TEST_SRC_DIR@/lit.cfg.py")

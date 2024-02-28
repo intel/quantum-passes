@@ -1,0 +1,586 @@
+{
+    "platform": {
+        "name": "Quantum SDK Prototype",
+        "core_list": [
+            "core_0"
+        ],
+        "num_qubits": 2,
+        "connectivity" : "all-to-all"
+    },
+    "cores": [
+        {
+            "name": "core_0",
+            "controllers": [
+                0
+            ]
+        }
+    ],
+    "controllers": {
+        "cryogenic_controllers": [],
+        "room_temperature_controllers": [
+            {
+                "conductor_id": 0,
+                "controller_id": 0,
+                "clock_cycle_time": "5e-9",
+                "dac_bit_precision": 14,
+                "channels": [
+                    {
+                        "channel_id": 16,
+                        "type": "rdo",
+                        "controller_channel_id": 16,
+                        "physical_connection_map": "B3"
+                    },
+                    {
+                        "channel_id": 0,
+                        "type": "rf",
+                        "controller_channel_id": 0,
+                        "physical_connection_map": "EDSRO"
+                    },
+                    {
+                        "channel_id": 1,
+                        "type": "rf",
+                        "controller_channel_id": 1,
+                        "physical_connection_map": "EDSRO"
+                    },
+                    {
+                        "channel_id": 2,
+                        "type": "rf",
+                        "controller_channel_id": 2,
+                        "physical_connection_map": "EDSRO"
+                    },
+                    {
+                        "channel_id": 3,
+                        "type": "dc",
+                        "controller_channel_id": 3,
+                        "physical_connection_map": "B0"
+                    },
+                    {
+                        "channel_id": 4,
+                        "type": "dc",
+                        "controller_channel_id": 4,
+                        "physical_connection_map": "P1"
+                    },
+                    {
+                        "channel_id": 5,
+                        "type": "dc",
+                        "controller_channel_id": 5,
+                        "physical_connection_map": "B1"
+                    },
+                    {
+                        "channel_id": 6,
+                        "type": "dc",
+                        "controller_channel_id": 6,
+                        "physical_connection_map": "P2"
+                    },
+                    {
+                        "channel_id": 7,
+                        "type": "dc",
+                        "controller_channel_id": 7,
+                        "physical_connection_map": "B2"
+                    }
+                ]
+            }
+        ]
+    },
+    "qubits": [
+        {
+            "qubit_id": 0,
+            "intermediate_frequency": "5000000.0",
+            "controllers": [
+                0
+            ],
+            "rf_channels": [
+                0
+            ],
+            "dc_channels": [
+                3,
+                4,
+                5
+            ],
+            "rdo_channels": [
+                16
+            ]
+        },
+        {
+            "qubit_id": 1,
+            "intermediate_frequency": "30000000.0",
+            "controllers": [
+                0
+            ],
+            "rf_channels": [
+                1
+            ],
+            "dc_channels": [
+                5,
+                6,
+                7
+            ],
+            "rdo_channels": [
+                16
+            ]
+        }
+    ],
+    "operations": [
+        {
+            "name": "kRotxy",
+            "instances": [
+                {
+                    "qubit_ids": [
+                        0
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [
+                                {
+                                    "channel_id": 0,
+                                    "amplitude": "0.2",
+                                    "envelope": 0
+                                }
+                            ],
+                            "duration": "1e-06",
+                            "max_duration": "0.005"
+                        }
+                    ],
+                    "accumulated_charges": [
+                        {
+                            "channel_id": 3,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 4,
+                            "charge": "1e-08",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 5,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 6,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 7,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        }
+                    ]
+                },
+                {
+                    "qubit_ids": [
+                        1
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [
+                                {
+                                    "channel_id": 1,
+                                    "amplitude": "0.2",
+                                    "envelope": 0
+                                }
+                            ],
+                            "duration": "1e-06",
+                            "max_duration": "0.005"
+                        }
+                    ],
+                    "accumulated_charges": [
+                        {
+                            "channel_id": 3,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 4,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 5,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 6,
+                            "charge": "1e-08",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 7,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "kCz",
+            "instances": [
+                {
+                    "qubit_ids": [
+                        0,
+                        1
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [
+                                {
+                                    "channel_id": 4,
+                                    "amplitude": "0.0",
+                                    "envelope": 0
+                                },
+                                {
+                                    "channel_id": 6,
+                                    "amplitude": "0.0",
+                                    "envelope": 0
+                                },
+                                {
+                                    "channel_id": 5,
+                                    "amplitude": "0.0",
+                                    "envelope": 0
+                                }
+                            ],
+                            "duration": "1e-08",
+                            "max_duration": "1e-06"
+                        },
+                        {
+                            "stage_id": 1,
+                            "instructions": [
+                                {
+                                    "channel_id": 4,
+                                    "amplitude": "0.007071067811865476",
+                                    "envelope": 0
+                                },
+                                {
+                                    "channel_id": 6,
+                                    "amplitude": "-0.007071067811865476",
+                                    "envelope": 0
+                                },
+                                {
+                                    "channel_id": 5,
+                                    "amplitude": "0.005",
+                                    "envelope": 0
+                                }
+                            ],
+                            "duration": "1e-07",
+                            "max_duration": "1e-06"
+                        },
+                        {
+                            "stage_id": 2,
+                            "instructions": [
+                                {
+                                    "channel_id": 4,
+                                    "amplitude": "0.0",
+                                    "envelope": 0
+                                },
+                                {
+                                    "channel_id": 6,
+                                    "amplitude": "0.0",
+                                    "envelope": 0
+                                },
+                                {
+                                    "channel_id": 5,
+                                    "amplitude": "0.0",
+                                    "envelope": 0
+                                }
+                            ],
+                            "duration": "1e-08",
+                            "max_duration": "1e-06"
+                        }
+                    ],
+                    "accumulated_charges": [
+                        {
+                            "channel_id": 3,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 4,
+                            "charge": "1.5656854249492382e-09",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 5,
+                            "charge": "4e-10",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 6,
+                            "charge": "4.3431457505076194e-10",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 7,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "kPrep",
+            "instances": [
+                {
+                    "qubit_ids": [
+                        0
+                    ],
+                    "stages": [],
+                    "accumulated_charges": [
+                        {
+                            "channel_id": 3,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 4,
+                            "charge": "-3.0000000000000004e-07",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 5,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 6,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 7,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        }
+                    ]
+                },
+                {
+                    "qubit_ids": [
+                        1
+                    ],
+                    "stages": [],
+                    "accumulated_charges": [
+                        {
+                            "channel_id": 3,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 4,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 5,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 6,
+                            "charge": "-3.0000000000000004e-07",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 7,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "kMeasz",
+            "instances": [
+                {
+                    "qubit_ids": [
+                        0
+                    ],
+                    "stages": [],
+                    "accumulated_charges": [
+                        {
+                            "channel_id": 3,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 4,
+                            "charge": "-1.0000000000000001e-07",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 5,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 6,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 7,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        }
+                    ]
+                },
+                {
+                    "qubit_ids": [
+                        1
+                    ],
+                    "stages": [],
+                    "accumulated_charges": [
+                        {
+                            "channel_id": 3,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 4,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 5,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 6,
+                            "charge": "1.0000000000000001e-07",
+                            "max_amplitude": "0.03"
+                        },
+                        {
+                            "channel_id": 7,
+                            "charge": "0",
+                            "max_amplitude": "0.03"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "preparation": [
+        {
+            "controllers_name": "room_temperature_controllers",
+            "pulse_sequence": [
+                "0x40a00000000000",
+                "0x440a00000000000",
+                "0x840a00000000000",
+                "0xc4567fff0000000",
+                "0x104567fff0000000",
+                "0x144567fff0000000",
+                "0x184567fff0000000",
+                "0x1c4567fff0000000",
+                "0x204567fff0000000",
+                "0x244567fff0000000",
+                "0x284567fff0000000",
+                "0x2c4567fff0000000",
+                "0x304567fff0000000",
+                "0x344567fff0000000",
+                "0x384567fff0000000",
+                "0x3c4567fff0000000",
+                "0x404567fff0000000",
+                "0xc640ccccccc000",
+                "0x4c640ccccccc000",
+                "0x8c640ccccccc000",
+                "0xc4647fff0000000",
+                "0x104647fff0000000",
+                "0x144647fff0000000",
+                "0x184647fff0000000",
+                "0x1c4647fff0000000",
+                "0x204647fff0000000",
+                "0x244647fff0000000",
+                "0x284647fff0000000",
+                "0x2c4647fff0000000",
+                "0x304647fff0000000",
+                "0x344647fff0000000",
+                "0x384647fff0000000",
+                "0x3c4647fff0000000",
+                "0x404647fff0000000"
+            ]
+        }
+    ],
+    "measurement": [
+        {
+            "controllers_name": "room_temperature_controllers",
+            "pulse_sequence": [
+                "0x46400000000000",
+                "0x446400000000000",
+                "0x846400000000000",
+                "0xc4647fff0000000",
+                "0x104647fff0000000",
+                "0x144647fff0000000",
+                "0x184647fff0000000",
+                "0x1c4647fff0000000",
+                "0x204647fff0000000",
+                "0x244647fff0000000",
+                "0x284647fff0000000",
+                "0x2c4647fff0000000",
+                "0x304647fff0000000",
+                "0x344647fff0000000",
+                "0x384647fff0000000",
+                "0x3c4647fff0000000",
+                "0x418643fff0000001",
+                "0x46400000000000",
+                "0x446400000000000",
+                "0x846400000000000",
+                "0xc4647fff0000000",
+                "0x104647fff0000000",
+                "0x144647fff0000000",
+                "0x184647fff0000000",
+                "0x1c4647fff0000000",
+                "0x204647fff0000000",
+                "0x244647fff0000000",
+                "0x284647fff0000000",
+                "0x2c4647fff0000000",
+                "0x304647fff0000000",
+                "0x344647fff0000000",
+                "0x384647fff0000000",
+                "0x3c4647fff0000000",
+                "0x418647fad0000003",
+                "0x46400000000000",
+                "0x446400000000000",
+                "0x846400000000000",
+                "0xc4647fff0000000",
+                "0x104647fff0000000",
+                "0x144647fff0000000",
+                "0x184647fff0000000",
+                "0x1c4647fff0000000",
+                "0x204647fff0000000",
+                "0x244647fff0000000",
+                "0x284647fff0000000",
+                "0x2c4647fff0000000",
+                "0x304647fff0000000",
+                "0x344647fff0000000",
+                "0x384647fff0000000",
+                "0x3c4647fff0000000",
+                "0x418647fff0000005",
+                "0x45600000000000",
+                "0x445600000000000",
+                "0x845600000000000",
+                "0xc40a7fff0000000",
+                "0x1040a7fff0000000",
+                "0x1440a7fff0000000",
+                "0x1840a7fff0000000",
+                "0x1c40a7fff0000000",
+                "0x2040a7fff0000000",
+                "0x2440a7fff0000000",
+                "0x2840a7fff0000000",
+                "0x2c40a7fff0000000",
+                "0x3040a7fff0000000",
+                "0x3440a7fff0000000",
+                "0x3840a7fff0000000",
+                "0x3c40a7fff0000000",
+                "0x4040a7fff0000000"
+            ]
+        }
+    ]
+}

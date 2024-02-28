@@ -1,0 +1,6 @@
+{
+    "platform": {
+        "configuration": "./Quantum_SDK_Prototype_25q_configuration.json",
+        "calibration": "<path to calibration file>"
+    }
+}

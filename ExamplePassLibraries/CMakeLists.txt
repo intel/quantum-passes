@@ -1,0 +1,2 @@
+add_subdirectory(ExamplePassesLibrary)
+add_subdirectory(ExampleSinglePass)

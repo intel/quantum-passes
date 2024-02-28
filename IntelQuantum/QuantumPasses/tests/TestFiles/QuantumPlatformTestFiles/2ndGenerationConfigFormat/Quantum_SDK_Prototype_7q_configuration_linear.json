@@ -1,0 +1,796 @@
+{
+    "platform": {
+        "name": "qsdk compatible",
+        "core_list": [
+            "core_0"
+        ],
+        "num_qubits": 7,
+        "connectivity": "custom"
+    },
+    "cores": [
+        {
+            "name": "core_0",
+            "controllers": [
+                0
+            ]
+        }
+    ],
+    "controllers": {
+        "cryogenic_controllers": [],
+        "room_temperature_controllers": [
+            {
+                "conductor_id": 0,
+                "controller_id": 0,
+                "clock_cycle_time": "5e-9",
+                "dac_bit_precision": 14,
+                "channels": [
+                    {
+                        "channel_id": 0,
+                        "type": "rf",
+                        "controller_channel_id": 0,
+                        "physical_connection_map": "EDSRO"
+                    },
+                    {
+                        "channel_id": 1,
+                        "type": "rf",
+                        "controller_channel_id": 1,
+                        "physical_connection_map": "EDSR1"
+                    },
+                    {
+                        "channel_id": 2,
+                        "type": "dc",
+                        "controller_channel_id": 2,
+                        "physical_connection_map": "Beven"
+                    },
+                    {
+                        "channel_id": 3,
+                        "type": "dc",
+                        "controller_channel_id": 3,
+                        "physical_connection_map": "Peven"
+                    },
+                    {
+                        "channel_id": 4,
+                        "type": "dc",
+                        "controller_channel_id": 4,
+                        "physical_connection_map": "Bodd"
+                    },
+                    {
+                        "channel_id": 5,
+                        "type": "dc",
+                        "controller_channel_id": 5,
+                        "physical_connection_map": "Podd"
+                    },
+                    {
+                        "channel_id": 9,
+                        "type": "rdo",
+                        "controller_channel_id": 9,
+                        "physical_connection_map": "READ"
+                    }
+                ]
+            }
+        ]
+    },
+    "qubits": [
+        {
+            "qubit_id": 0,
+            "intermediate_frequency": "1000000",
+            "controllers": [
+                0
+            ],
+            "rf_channels": [
+                0
+            ],
+            "dc_channels": [
+                2,
+                3
+            ],
+            "rdo_channels": [
+                9
+            ]
+        },
+        {
+            "qubit_id": 1,
+            "intermediate_frequency": "1500000",
+            "controllers": [
+                0
+            ],
+            "rf_channels": [
+                1
+            ],
+            "dc_channels": [
+                4,
+                5
+            ],
+            "rdo_channels": [
+                9
+            ]
+        },
+        {
+            "qubit_id": 2,
+            "intermediate_frequency": "2000000",
+            "controllers": [
+                0
+            ],
+            "rf_channels": [
+                0
+            ],
+            "dc_channels": [
+                2,
+                3
+            ],
+            "rdo_channels": [
+                9
+            ]
+        },
+        {
+            "qubit_id": 3,
+            "intermediate_frequency": "2500000",
+            "controllers": [
+                0
+            ],
+            "rf_channels": [
+                1
+            ],
+            "dc_channels": [
+                4,
+                5
+            ],
+            "rdo_channels": [
+                9
+            ]
+        },
+        {
+            "qubit_id": 4,
+            "intermediate_frequency": "3000000",
+            "controllers": [
+                0
+            ],
+            "rf_channels": [
+                0
+            ],
+            "dc_channels": [
+                2,
+                3
+            ],
+            "rdo_channels": [
+                9
+            ]
+        },
+        {
+            "qubit_id": 5,
+            "intermediate_frequency": "3500000",
+            "controllers": [
+                0
+            ],
+            "rf_channels": [
+                1
+            ],
+            "dc_channels": [
+                4,
+                5
+            ],
+            "rdo_channels": [
+                9
+            ]
+        },
+        {
+            "qubit_id": 6,
+            "intermediate_frequency": "4000000",
+            "controllers": [
+                0
+            ],
+            "rf_channels": [
+                0
+            ],
+            "dc_channels": [
+                2,
+                3
+            ],
+            "rdo_channels": [
+                9
+            ]
+        }
+    ],
+    "operations": [
+        {
+            "name": "kRotxy",
+            "instances": [
+                {
+                    "qubit_ids": [
+                        0
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "5e-9",
+                            "max_duration": "5e-9"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        1
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "5e-9",
+                            "max_duration": "5e-9"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        2
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "5e-9",
+                            "max_duration": "5e-9"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        3
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "5e-9",
+                            "max_duration": "5e-9"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        4
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "5e-9",
+                            "max_duration": "5e-9"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        5
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "5e-9",
+                            "max_duration": "5e-9"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        6
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "5e-9",
+                            "max_duration": "5e-9"
+                        }
+                    ],
+                    "accumulated_charges": []
+                }
+            ]
+        },
+        {
+            "name": "kRotz",
+            "instances": [
+                {
+                    "qubit_ids": [
+                        0
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "5e-9",
+                            "max_duration": "5e-9"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        1
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "5e-9",
+                            "max_duration": "5e-9"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        2
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "5e-9",
+                            "max_duration": "5e-9"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        3
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "5e-9",
+                            "max_duration": "5e-9"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        4
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "5e-9",
+                            "max_duration": "5e-9"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        5
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "5e-9",
+                            "max_duration": "5e-9"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        6
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "5e-9",
+                            "max_duration": "5e-9"
+                        }
+                    ],
+                    "accumulated_charges": []
+                }
+            ]
+        },
+        {
+            "name": "kCz",
+            "instances": [
+                {
+                    "qubit_ids": [
+                        0,
+                        1
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "1e-08",
+                            "max_duration": "1e-08"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        1,
+                        2
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "1e-08",
+                            "max_duration": "1e-08"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        2,
+                        3
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "1e-08",
+                            "max_duration": "1e-08"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        3,
+                        4
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "1e-08",
+                            "max_duration": "1e-08"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        4,
+                        5
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "1e-08",
+                            "max_duration": "1e-08"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        5,
+                        6
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "1e-08",
+                            "max_duration": "1e-08"
+                        }
+                    ],
+                    "accumulated_charges": []
+                }
+            ]
+        },
+        {
+            "name": "kSwapalp",
+            "instances": [
+                {
+                    "qubit_ids": [
+                        0,
+                        1
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "4e-08",
+                            "max_duration": "4e-08"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        1,
+                        2
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "4e-08",
+                            "max_duration": "4e-08"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        2,
+                        3
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "4e-08",
+                            "max_duration": "4e-08"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        3,
+                        4
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "4e-08",
+                            "max_duration": "4e-08"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        4,
+                        5
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "4e-08",
+                            "max_duration": "4e-08"
+                        }
+                    ],
+                    "accumulated_charges": []
+                },
+                {
+                    "qubit_ids": [
+                        5,
+                        6
+                    ],
+                    "stages": [
+                        {
+                            "stage_id": 0,
+                            "instructions": [],
+                            "duration": "4e-08",
+                            "max_duration": "4e-08"
+                        }
+                    ],
+                    "accumulated_charges": []
+                }
+            ]
+        },
+        {
+            "name": "kPrep",
+            "instances": [
+                {
+                    "qubit_ids": [
+                        0
+                    ],
+                    "stages": [],
+                    "accumulated_charges": [
+                        {
+                            "channel_id": 0,
+                            "charge": "-3e-07",
+                            "max_amplitude": "0.03"
+                        }
+                    ]
+                },
+                {
+                    "qubit_ids": [
+                        1
+                    ],
+                    "stages": [],
+                    "accumulated_charges": [
+                        {
+                            "channel_id": 2,
+                            "charge": "-3e-07",
+                            "max_amplitude": "0.03"
+                        }
+                    ]
+                },
+                {
+                    "qubit_ids": [
+                        2
+                    ],
+                    "stages": [],
+                    "accumulated_charges": [
+                        {
+                            "channel_id": 0,
+                            "charge": "-3e-07",
+                            "max_amplitude": "0.03"
+                        }
+                    ]
+                },
+                {
+                    "qubit_ids": [
+                        3
+                    ],
+                    "stages": [],
+                    "accumulated_charges": [
+                        {
+                            "channel_id": 2,
+                            "charge": "-3e-07",
+                            "max_amplitude": "0.03"
+                        }
+                    ]
+                },
+                {
+                    "qubit_ids": [
+                        4
+                    ],
+                    "stages": [],
+                    "accumulated_charges": [
+                        {
+                            "channel_id": 0,
+                            "charge": "-3e-07",
+                            "max_amplitude": "0.03"
+                        }
+                    ]
+                },
+                {
+                    "qubit_ids": [
+                        5
+                    ],
+                    "stages": [],
+                    "accumulated_charges": [
+                        {
+                            "channel_id": 2,
+                            "charge": "-3e-07",
+                            "max_amplitude": "0.03"
+                        }
+                    ]
+                },
+                {
+                    "qubit_ids": [
+                        6
+                    ],
+                    "stages": [],
+                    "accumulated_charges": [
+                        {
+                            "channel_id": 0,
+                            "charge": "-3e-07",
+                            "max_amplitude": "0.03"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "kMeasz",
+            "instances": [
+                {
+                    "qubit_ids": [
+                        0
+                    ],
+                    "stages": [],
+                    "accumulated_charges": [
+                        {
+                            "channel_id": 0,
+                            "charge": "-1e-07",
+                            "max_amplitude": "0.03"
+                        }
+                    ]
+                },
+                {
+                    "qubit_ids": [
+                        1
+                    ],
+                    "stages": [],
+                    "accumulated_charges": [
+                        {
+                            "channel_id": 2,
+                            "charge": "-1e-07",
+                            "max_amplitude": "0.03"
+                        }
+                    ]
+                },
+                {
+                    "qubit_ids": [
+                        2
+                    ],
+                    "stages": [],
+                    "accumulated_charges": [
+                        {
+                            "channel_id": 0,
+                            "charge": "-1e-07",
+                            "max_amplitude": "0.03"
+                        }
+                    ]
+                },
+                {
+                    "qubit_ids": [
+                        3
+                    ],
+                    "stages": [],
+                    "accumulated_charges": [
+                        {
+                            "channel_id": 2,
+                            "charge": "-1e-07",
+                            "max_amplitude": "0.03"
+                        }
+                    ]
+                },
+                {
+                    "qubit_ids": [
+                        4
+                    ],
+                    "stages": [],
+                    "accumulated_charges": [
+                        {
+                            "channel_id": 0,
+                            "charge": "-1e-07",
+                            "max_amplitude": "0.03"
+                        }
+                    ]
+                },
+                {
+                    "qubit_ids": [
+                        5
+                    ],
+                    "stages": [],
+                    "accumulated_charges": [
+                        {
+                            "channel_id": 2,
+                            "charge": "-1e-07",
+                            "max_amplitude": "0.03"
+                        }
+                    ]
+                },
+                {
+                    "qubit_ids": [
+                        6
+                    ],
+                    "stages": [],
+                    "accumulated_charges": [
+                        {
+                            "channel_id": 0,
+                            "charge": "-1e-07",
+                            "max_amplitude": "0.03"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "preparation": [
+        {
+            "controllers_name": "room_temperature_controllers",
+            "pulse_sequence": []
+        }
+    ],
+    "measurement": [
+        {
+            "controllers_name": "room_temperature_controllers",
+            "pulse_sequence": []
+        }
+    ]
+}

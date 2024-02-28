@@ -1,0 +1,6 @@
+{
+    "platform": {
+        "configuration": "Quantum_SDK_Prototype_12q_configuration_linear.json",
+        "calibration": "<path to calibration file>"
+    }
+}

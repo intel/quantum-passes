@@ -1,0 +1,14 @@
+STRINGIFYDATA(
+defpoints nodes 10 \n
+\n
+defgraph my_graph (nodes) \n
+    for i all (0-i) \n
+    for i > 5 (i-5) \n
+    (1-6) \n
+end \n
+\n
+my_cost = build my_graph as cost \n
+my_mixer = build nodes as mixer \n
+\n
+run(my_cost) my_cost, my_mixer 10\n
+)
