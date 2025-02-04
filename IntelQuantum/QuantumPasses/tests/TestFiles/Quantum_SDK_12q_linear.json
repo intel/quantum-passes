@@ -6656,9 +6656,9 @@
                     "qubit_ids": [
                         0
                     ],
-                    "stages": [],
                     "accumulated_charges": [
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -6666,7 +6666,8 @@
                     ],
                     "stages": [],
                     "accumulated_charges": [
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -6674,7 +6675,8 @@
                     ],
                     "stages": [],
                     "accumulated_charges": [
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -6697,7 +6699,8 @@
                             "charge": 0,
                             "max_amplitude": 0.03
                         }
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -6720,7 +6723,8 @@
                             "charge": 0,
                             "max_amplitude": 0.03
                         }
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -6743,7 +6747,8 @@
                             "charge": 0,
                             "max_amplitude": 0.03
                         }
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -6766,7 +6771,8 @@
                             "charge": -0.298,
                             "max_amplitude": 0.03
                         }
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -6789,7 +6795,8 @@
                             "charge": -0.298,
                             "max_amplitude": 0.03
                         }
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -6812,7 +6819,8 @@
                             "charge": -0.298,
                             "max_amplitude": 0.03
                         }
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -6835,7 +6843,8 @@
                             "charge": -0.298,
                             "max_amplitude": 0.03
                         }
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -6858,7 +6867,8 @@
                             "charge": -0.298,
                             "max_amplitude": 0.03
                         }
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -6881,7 +6891,8 @@
                             "charge": -0.298,
                             "max_amplitude": 0.03
                         }
-                    ]
+                    ],
+                    "max_duration": 0
                 }
             ]
         },
@@ -6894,7 +6905,8 @@
                     ],
                     "stages": [],
                     "accumulated_charges": [
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -6902,7 +6914,8 @@
                     ],
                     "stages": [],
                     "accumulated_charges": [
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -6910,7 +6923,8 @@
                     ],
                     "stages": [],
                     "accumulated_charges": [
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -6933,7 +6947,8 @@
                             "charge": -0.298,
                             "max_amplitude": 0.03
                         }
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -6956,7 +6971,8 @@
                             "charge": -0.298,
                             "max_amplitude": 0.03
                         }
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -6979,7 +6995,8 @@
                             "charge": -0.298,
                             "max_amplitude": 0.03
                         }
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -7002,7 +7019,8 @@
                             "charge": -0.298,
                             "max_amplitude": 0.03
                         }
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -7025,7 +7043,8 @@
                             "charge": -0.298,
                             "max_amplitude": 0.03
                         }
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -7048,7 +7067,8 @@
                             "charge": -0.298,
                             "max_amplitude": 0.03
                         }
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -7071,7 +7091,8 @@
                             "charge": -0.298,
                             "max_amplitude": 0.03
                         }
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -7094,7 +7115,8 @@
                             "charge": -0.298,
                             "max_amplitude": 0.03
                         }
-                    ]
+                    ],
+                    "max_duration": 0
                 },
                 {
                     "qubit_ids": [
@@ -7117,7 +7139,8 @@
                             "charge": -0.298,
                             "max_amplitude": 0.03
                         }
-                    ]
+                    ],
+                    "max_duration": 0
                 }
             ]
         }

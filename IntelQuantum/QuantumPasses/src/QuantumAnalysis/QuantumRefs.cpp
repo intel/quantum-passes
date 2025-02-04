@@ -15,6 +15,7 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Intrinsics.h"
+#include "llvm/IR/IntrinsicsFLEQ.h"
 #include "llvm/IR/PassManager.h"
 #include "llvm/IR/PatternMatch.h"
 #include "llvm/IR/Type.h"
@@ -51,13 +52,11 @@ std::string getPrettyName(Value *);
 ////////////////////////////////////////////////////////////////////////////////
 // QbitRef Constructors/Destructor
 
-QbitRef::QbitRef(inst_iterator reg_iter) { setRegister(reg_iter); }
-
 QbitRef::QbitRef(Module::global_iterator reg_iter) { setRegister(reg_iter); }
 
 QbitRef::QbitRef(Value *reg_ptr) { setRegister(reg_ptr); }
 
-QbitRef::QbitRef(inst_iterator reg_iter, unsigned ind) {
+QbitRef::QbitRef(Instruction *reg_iter, unsigned ind) {
   setRegister(reg_iter);
   setIndexResolved(ind);
 }
@@ -72,7 +71,7 @@ QbitRef::QbitRef(Value *reg_ptr, unsigned ind) {
   setIndexResolved(ind);
 }
 
-QbitRef::QbitRef(inst_iterator reg_iter, Value *index) {
+QbitRef::QbitRef(Instruction *reg_iter, Value *index) {
   setRegister(reg_iter);
   setIndex(index);
 }
@@ -367,13 +366,19 @@ bool QbitRef::isDistinguishable(const QbitRef &other) const {
   return true;
 }
 
-int QbitRef::isEqual(QbitRef &q) {
+int QbitRef::isEqual(const QbitRef &q) const {
 
   // most obvious case, check registers
   if (!isDistinguishable(q))
     return -1;
   if (reg_ptr_ != q.reg_ptr_)
     return 0;
+
+  else if (!index_ptr_ || !q.index_ptr_)
+    return -1;
+
+  if (index_ptr_ == q.index_ptr_)
+    return 1;
 
   // Now try harder: check if we can resolve index to be equal
   ParaRef idx(index_ptr_);
@@ -401,12 +406,6 @@ LLVMContext &QbitRef::getContext() {
 /////////////////////////////////////////////////////////////////////////////////////////////
 // manipulators
 
-void QbitRef::setRegister(inst_iterator reg_iter) {
-
-  Value *temp = &*reg_iter;
-  setRegister(temp);
-}
-
 void QbitRef::setRegister(Module::global_iterator reg_iter) {
 
   Value *temp = dyn_cast<Value>(&*reg_iter);
@@ -423,9 +422,9 @@ void QbitRef::setRegister(Value *reg_ptr) {
     reg_ptr_ = dyn_cast<Value>(Arg);
   else if ((is_qbit_alloc(reg_ptr)))
     reg_ptr_ = reg_ptr;
-  else if ((is_qbit_global(reg_ptr)))
+  else if ((is_qbit_global(reg_ptr))) {
     reg_ptr_ = reg_ptr;
-  else if ((is_qbit_fleq_reg(reg_ptr)))
+  } else if ((is_qbit_fleq_reg(reg_ptr)))
     reg_ptr_ = reg_ptr;
   else {
     LLVM_DEBUG(dbgs() << "QbitRef Error: register must be set to an "
@@ -469,9 +468,14 @@ void QbitRef::shiftIndexByResolved(int shift) {
     int idx = getIndexResolved().value();
     idx += shift;
     if (idx < 0) {
-      errs() << "QbitRef Error: shifting " << (idx - shift) << " by " << shift
-             << "goes past 0 for " << getPrettyName(reg_ptr_, false) << "\n";
-      index_ptr_ = nullptr;
+      std::optional<unsigned> sz = getRegisterSize();
+      if (!sz.has_value()) {
+        errs() << "QbitRef Error: shifting " << (idx - shift) << " by " << shift
+               << " goes past 0 for " << getPrettyName(reg_ptr_, false) << "\n";
+        index_ptr_ = nullptr;
+        return;
+      }
+      idx = (sz.value() + idx) % sz.value();
     }
     setIndexResolved((unsigned)idx);
   } else {
@@ -671,13 +675,11 @@ AllocaInst *QbitRef::is_qbit_alloc(Value *alloc) const {
 }
 
 GlobalValue *QbitRef::is_qbit_global(Value *global) const {
-
   if (global == nullptr) {
     return nullptr;
   }
   // Is this a direct qubit allocation
   else if (GlobalValue *GV = dyn_cast<GlobalValue>(global)) {
-
     // Is the global variable a pointer
     if (PointerType *PtrTy = dyn_cast<PointerType>(GV->getType())) {
       // Is the pointer to a variable
@@ -777,7 +779,179 @@ bool QbitRef::is_in_register(unsigned ind) const {
   std::optional<unsigned> temp = getRegisterSize();
   if (temp.has_value())
     return ind <= temp.value(); // allow equality for zero size arrays.
+
   return true;
+}
+
+Value *QbitRef::createValue(Instruction *instr, bool is_after, bool isQbitPtr,
+                            QIter *QIt) {
+  Value *out = nullptr;
+
+  // check if reg_ptr_ is an integer type itself, meaning no Instructions
+  // need to be inserted
+  if (IntegerType *ITy = dyn_cast<IntegerType>(reg_ptr_->getType()))
+    return reg_ptr_;
+
+  // check if reg_ptr_ is a pointer
+  else if (PointerType *PTy = dyn_cast<PointerType>(reg_ptr_->getType())) {
+
+    Value *load_ptr = reg_ptr_;
+    Type *load_ty = nullptr;
+    if (AllocaInst *AI = is_qbit_alloc()) {
+      load_ty = AI->getAllocatedType();
+    } else if (Argument *Arg = is_qbit_argument()) {
+      load_ty = Type::getInt16Ty(load_ptr->getContext());
+    } else if (GlobalValue *GV = is_qbit_global()) {
+      load_ty = GV->getValueType();
+    } else if (CallBase *CB = is_qbit_fleq_reg()) {
+      load_ty = Type::getInt16Ty(load_ptr->getContext());
+    }
+
+    assert(load_ty != nullptr);
+
+    std::vector<Value *> gep_array;
+    if ((dyn_cast<ArrayType>(load_ty)))
+      gep_array.push_back(
+          ConstantInt::get(IntegerType::get(getContext(), 64), 0));
+
+    gep_array.push_back(index_ptr_);
+
+    // getAlignment
+    MaybeAlign maybe_align;
+    Align alignment;
+    if (AllocaInst *AI = is_qbit_alloc()) {
+      alignment = AI->getAlign();
+      maybe_align = MaybeAlign(alignment);
+    } else if (Argument *Arg = is_qbit_argument())
+      maybe_align = Arg->getParamAlign();
+    else if (GlobalValue *GV = is_qbit_global()) {
+      maybe_align = GV->getAliaseeObject()->getAlign();
+    }
+
+    bool flag = false;
+
+    // check if index is zero in which case we don't need a get element ptr
+    if ((dyn_cast<IntegerType>(load_ty))) {
+      if (ConstantInt *CInt = dyn_cast<ConstantInt>(index_ptr_)) {
+        if (CInt->getZExtValue() == 0)
+          flag = true;
+      }
+    }
+
+    // in the case of a fleq call, we need to use qlist.at to get correct
+    // qubit
+    if (CallBase *CB = is_qbit_fleq_reg()) {
+
+      auto IntrID = Intrinsic::fleq_qlist_at;
+      Function *qlist_at = Intrinsic::getDeclaration(CB->getModule(), IntrID);
+      CallInst *CallAt = CallInst::Create(qlist_at->getFunctionType(), qlist_at,
+                                          {reg_ptr_, index_ptr_});
+
+      if (instr) {
+        if (is_after)
+          CallAt->insertAfter(instr);
+        else
+          CallAt->insertBefore(instr);
+      }
+
+      load_ptr = dyn_cast<Value>(CallAt);
+      flag = true;
+    }
+
+    if (flag) {
+      if (!isQbitPtr) {
+        LoadInst *LI = new LoadInst(load_ty, load_ptr, "", false,
+                                    maybe_align.valueOrOne());
+
+        if (instr) {
+          if (is_after)
+            LI->insertAfter(instr);
+          else
+            LI->insertBefore(instr);
+        }
+        out = dyn_cast<Value>(LI);
+      } else
+        // Since we are passing qubits as reference, no need to insert a load
+        // instruction directly pass through the allocainst reference
+        out = load_ptr;
+
+    } else {
+      if (instr) {
+        Instruction *MoveIdxTo = instr;
+
+        // If index_ptr_ is an instruction, try to add or move Instruction it
+        // represents before GEP
+        // Never move a Phi, landing pad or allocation
+        if (!isa<PHINode>(index_ptr_) && !isa<LandingPadInst>(index_ptr_) &&
+            !isa<AllocaInst>(index_ptr_)) {
+          if (Instruction *II = dyn_cast<Instruction>(index_ptr_)) {
+            if (is_index_owned()) {
+              if (is_after) {
+                II->insertAfter(MoveIdxTo);
+                instr = II;
+              } else
+                II->insertBefore(MoveIdxTo);
+              set_index_owned(false);
+            } else {
+              // This instruction was already inserted into the IR, we may be
+              // inserting an instruction in the incorrect order, add it to the
+              // set of instructions to check for later.
+              if (QIt)
+                QIt->addToInstsToCheck(II);
+            }
+          }
+        }
+      }
+
+      GetElementPtrInst *GI = GetElementPtrInst::CreateInBounds(
+          load_ty, load_ptr, gep_array, "arrayidx");
+      if (!GI) {
+        return nullptr;
+      }
+      load_ptr = dyn_cast<Value>(GI);
+      if (!load_ptr) {
+        return nullptr;
+      }
+
+      // Insert Instructions
+      if (instr) {
+        if (is_after) {
+          GI->insertAfter(instr);
+        } else {
+          GI->insertBefore(instr);
+        }
+      }
+      auto *Instr = dyn_cast<Instruction>(GI);
+      if (!Instr) {
+        return nullptr;
+      }
+
+      if (!isQbitPtr) {
+        auto *LP = dyn_cast<PointerType>(load_ptr->getType());
+        if (!LP) {
+          return nullptr;
+        }
+        auto *AP = dyn_cast<ArrayType>(load_ty);
+        if (!AP) {
+          return nullptr;
+        }
+        load_ty = AP->getArrayElementType();
+        LoadInst *LI = new LoadInst(load_ty, load_ptr, "", false,
+                                    maybe_align.valueOrOne());
+        if (instr)
+          LI->insertAfter(Instr);
+        out = dyn_cast<Value>(LI);
+      } else {
+        out = load_ptr;
+      }
+
+      Instruction *MoveIdxTo = dyn_cast<Instruction>(GI);
+      if (!MoveIdxTo) {
+        return nullptr;
+      }
+    }
+  }
+  return out;
 }
 
 Value *QbitRef::binary_op_helper(Instruction::BinaryOps opcode,
@@ -1376,8 +1550,6 @@ void ParaRef::deleteAllOwnedParaRefs() {
 }
 ////////////////////////////////////////////////////////////////////////////////
 // ParaRef function definitions
-
-ParaRef::ParaRef(inst_iterator inst) { setValue(inst); }
 
 ParaRef::ParaRef(Value *val) { setValue(val); }
 
@@ -2074,11 +2246,6 @@ void ParaRef::setValueResolved(ParaType val) {
                          "example to get the LLVM::Context().\n";
     displayErrorAndExit("ParaRef", ErrMsg);
   }
-}
-
-void ParaRef::setValue(inst_iterator inst) {
-  Value *temp = dyn_cast<Value>(&*inst);
-  setValue(temp);
 }
 
 void ParaRef::setValue(Value *val) {

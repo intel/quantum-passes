@@ -22,6 +22,7 @@ void initializeQuantumAnnotationsToJsonWrapperPassPass(PassRegistry &);
 void initializeQuantumSpinNativeToJsonLegacyPassPass(PassRegistry &);
 void initializeQuantumSpinNativeToJsonWrapperPassPass(PassRegistry &);
 void initializeSchedulerLegacyPassPass(PassRegistry &);
+void initializeQuantumSerializeKernelLegacyPassPass(PassRegistry &);
 void initializeConvertQbitToQIDLegacyPassPass(PassRegistry &);
 void initializeSpinNativeAnglesInRangeLegacyPassPass(PassRegistry &);
 void initializeSeparateAndReplaceQBBLegacyPassPass(PassRegistry &);

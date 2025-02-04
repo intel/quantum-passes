@@ -1,6 +1,7 @@
 add_library(ExampleMultiPass SHARED
   src/GatePrinterPass.cpp
   src/XToHZHPass.cpp
+  src/ToffoliWithCircuitPass.cpp
   src/PluginImplementation.cpp
 )
 

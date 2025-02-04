@@ -88,7 +88,7 @@ void ValidateAndConditionQBB::conditionIntoQBBs(Function &F,
         endBB = release_BB;
         start = i;
         // remove any remaining gates after the release call
-        inst_iterator inst_after = inst_at(rel_pair->second->eraseFromParent());
+        Instruction *inst_after = inst_at(rel_pair->second->eraseFromParent());
         for (QBBIter to_rm(*release_BB, inst_after); !to_rm.isEnd();) {
           to_rm.removeGate();
           signal_gate_removal = true;
@@ -119,9 +119,9 @@ void ValidateAndConditionQBB::conditionIntoQBBs(Function &F,
     // should always be a terminator.
     F_gates[start].gotoEnd();
     --F_gates[start];
-    inst_iterator temp = F_gates[start].getGateInstIterator();
-    ++temp;
-    split_inst = &*temp;
+    Instruction *temp = F_gates[start].getGateInstIterator();
+    temp = temp->getNextNode();
+    split_inst = temp;
     F_gates[start].gotoBegin();
   }
 
@@ -142,7 +142,6 @@ void ValidateAndConditionQBB::conditionIntoQBBs(Function &F,
   QBBIter gate_new(*QBB);
 
   // Now move gates out of other BB and into the new "QBB" block
-
   for (size_t i = start; i < F_gates.size(); i++) {
     QBBIter &cur = F_gates[i];
 
@@ -158,16 +157,17 @@ void ValidateAndConditionQBB::conditionIntoQBBs(Function &F,
       unsigned gate_id = cur.getIdentifier();
       std::vector<QbitRef> qubits = cur.getQubitOperands();
       std::vector<ParaRef> paras = cur.getParametricOperands();
-
       // recall gates are inserted before position pointed to,
       // so we insert last to first.
       cur.removeGate();
-      gate_new.insertGate(gate_id, qubits, paras);
+      gate_new.insertGate(gate_id, qubits, paras, false);
 
       // moving between begin and end is cheap so
       // loop only exits if begin == end
       cur.gotoBegin();
     }
+
+    gate_new.updateGateDependencies();
   };
 
   // If gates were removed due to a release call, issue warning
@@ -191,7 +191,6 @@ void ValidateAndConditionQBB::cleanUpMeasurementControlInst(Module &M) {
 }
 
 bool ValidateAndConditionQBB::conditionQBB(Module &M, QuantumModule &QM) {
-
   std::set<Function *> to_rm;
   locateMeasurementControlInst(M);
 
@@ -199,7 +198,6 @@ bool ValidateAndConditionQBB::conditionQBB(Module &M, QuantumModule &QM) {
 
     std::vector<QBBIter> F_gates;
     Function *F = QK.getFunction();
-
     switch (validateQuantumKernel(QK, F_gates)) {
     case 2: { // release QBB
       conditionIntoQBBs(QK, F_gates);
@@ -288,7 +286,7 @@ bool ValidateAndConditionQBB::conditionQBB(Module &M, QuantumModule &QM) {
 
 PreservedAnalyses ValidateAndConditionQBBPass::run(Module &M,
                                                    ModuleAnalysisManager &MAM) {
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
   QBB.conditionQBB(M, *QMP.QM);
 
   return PreservedAnalyses::all();

@@ -88,7 +88,12 @@ class QuantumScheduler {
 private:
   std::string forward_scheduling_method_ = "none";
   std::string backward_scheduling_method_ = "retrace";
+  std::set<std::string> NativeGateNames;
   bool serialize_ = false;
+  /// Flag marking the fact that we are handling
+  /// canonical gates, rather than the spin native
+  /// gates.
+  bool CanonicalSchedule = false;
 
 public:
   std::vector<unsigned> hamil_path_for_sort_;
@@ -111,7 +116,7 @@ public:
   // - physical qubits can be uniquely identified by their index
   // - if there is a qubit with index k, then all qubits 0, 1,..., k-1 exists
   //   too
-  std::vector<std::vector<int>> table_;
+  std::vector<std::vector<std::pair<int, unsigned long>>> table_;
   const int is_idle_ = INT_MAX;
   const int is_still_busy_ = INT_MAX - 1;
   int num_gates_ = 0;
@@ -164,6 +169,8 @@ public:
   //    fall back to the default method "retrace".
   void setupForSpecificBackwardSchedulingMethods(QuantumModule &QM);
   void setBackwardSchedulingMethod(std::string method);
+
+  void setCanonicalScheduling(bool SetVal);
 
   /// Get the backward scheduling method.
   std::string getBackwardSchedulingMethod() {

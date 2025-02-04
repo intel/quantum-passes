@@ -18,11 +18,12 @@
 #include <iostream>
 #include <map>
 #define DEBUG_TYPE "latexInstructions"
-extern cl::opt<std::string> comp_pos;
 extern cl::list<std::string> quantum_debug;
 
-PrinterLaTex::PrinterLaTex(proofreader::ProofReader *read) {
+PrinterLaTex::PrinterLaTex(proofreader::ProofReader *read,
+                           std::string comp_pos) {
   this->reader = read;
+  this->comp_pos = comp_pos;
 }
 
 void PrinterLaTex::insertColumnSymbol(std::vector<std::string> &str) {

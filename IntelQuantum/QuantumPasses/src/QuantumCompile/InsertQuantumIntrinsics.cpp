@@ -236,6 +236,9 @@ static bool InsertQuantumIntrinsics(Module &M) {
         if (!CI)
           continue;
 
+        if (CI->isInlineAsm())
+          continue;
+
         if (!CI->isIndirectCall()) {
           Function *CF = CI->getCalledFunction();
           StringRef CalledName = CF->getName();
@@ -268,18 +271,11 @@ struct InsertQuantumIntrinsicsLegacyPass : public ModulePass {
 }; // End of struct InsertQuantumIntrinsicsPass
 
 char InsertQuantumIntrinsicsLegacyPass::ID = 0;
-static RegisterPass<InsertQuantumIntrinsicsLegacyPass>
-    X("insert-q-intrinsics", "InsertQuantumIntrinsicsLegacyPass", false, false);
 
 bool InsertQuantumIntrinsicsLegacyPass::runOnModule(Module &M) {
   // We will use the call graph scc ordering to order the inlining
   return InsertQuantumIntrinsics(M);
 }
-
-INITIALIZE_PASS_BEGIN(InsertQuantumIntrinsicsLegacyPass, "insert-q-intrinsics",
-                      "InsertQuantumIntrinsicsLegacyPass", false, false)
-INITIALIZE_PASS_END(InsertQuantumIntrinsicsLegacyPass, "insert-q-intrinsics",
-                    "InsertQuantumIntrinsicsLegacyPass", false, false)
 
 PreservedAnalyses InsertQuantumIntrinsicsPass::run(Module &M,
                                                    ModuleAnalysisManager &AM) {

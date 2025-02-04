@@ -11,6 +11,10 @@ add_executable(utests
     QuantumAnnotationsToJsonTest.cpp
     QuantumBBIteratorTest.cpp
     QuantumCbitRefTest.cpp
+    QuantumCircuitEditingTest.cpp
+    QuantumCircuitManipulationTest.cpp
+    QuantumCircuitNewCircuitTest.cpp
+    QuantumCircuitTest.cpp
     QuantumCompilerLinkageFinalTest.cpp
     QuantumCompilerLinkageTest.cpp
     QuantumGetPlatformTest.cpp
@@ -42,7 +46,8 @@ target_link_libraries(utests PRIVATE
     LLVMIRReader
     LLVMSupport
     LLVMDemangle
-    LLVMPasses)
+    LLVMPasses
+    platform-utils)
 
 ################################################################################
 

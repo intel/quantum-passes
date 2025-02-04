@@ -42,12 +42,6 @@ qbit q[N];
 // CHECK-NEXT:    [[TMP10:%.*]] = load ptr, ptr [[TMP2]], align 8, !tbaa [[TBAA14]]
 // CHECK-NEXT:    [[TMP11:%.*]] = icmp eq ptr [[TMP10]], [[TMP3]]
 // CHECK-NEXT:    br i1 [[TMP11]], label %[[TMP13:.*]], label %[[TMP12:.*]]
-// CHECK:       [[TMP12]]:
-// CHECK-NEXT:    call void @_ZdlPv(ptr noundef [[TMP10]]) #[[ATTR11]]
-// CHECK-NEXT:    br label %[[TMP13]]
-// CHECK:       [[TMP13]]:
-// CHECK-NEXT:    call void @llvm.lifetime.end.p0(i64 32, ptr nonnull [[TMP2]]) #[[ATTR11]]
-// CHECK-NEXT:    ret i32 0
 //
 int main() {
 

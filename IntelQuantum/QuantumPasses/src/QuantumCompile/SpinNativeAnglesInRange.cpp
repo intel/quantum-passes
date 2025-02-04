@@ -82,7 +82,7 @@ static void spinNativeAnglesInRange(Module &M, QuantumModule &QM) {
                   "'.");
         }
       } // for qit
-    }   // for QBBs
+    } // for QBBs
   }
 
   QM.setAnglesInRange();
@@ -125,7 +125,7 @@ INITIALIZE_PASS_END(SpinNativeAnglesInRangeLegacyPass, "spin-angles-in-range",
 
 PreservedAnalyses SpinNativeAnglesInRangePass::run(Module &M,
                                                    ModuleAnalysisManager &MAM) {
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
   spinNativeAnglesInRange(M, *QMP.QM);
   return PreservedAnalyses::all();
 }

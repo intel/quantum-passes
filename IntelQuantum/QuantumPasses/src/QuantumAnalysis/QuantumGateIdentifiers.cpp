@@ -18,6 +18,12 @@
 
 namespace llvm {
 
+GateIdentifier getGateID(int n) {
+  if (n < 0 && n > kSTILL)
+    return kSTILL;
+  return static_cast<GateIdentifier>(n);
+}
+
 int getInverseSQGateID(int id) {
 
   // switch to invert gate
@@ -183,6 +189,8 @@ std::string GetNameFromGateIdentifier(int id) {
     return "RXY";
   case kSWAPA:
     return "SwapA";
+  case kISWAP:
+    return "ISWAP";
   case kNumGates:
     return "NumGates";
   case kStartPulse:

@@ -129,11 +129,11 @@ TEST(QuantumSpinNativeToJsonTest, BasicBuild) {
 
   // bool worked = P->doInitialization(*M);
 
-  std::map<StringRef, json::Object> *data_ptr = QATJ->getQGateMetadata(&(*M));
+  std::map<std::string, json::Object> *data_ptr = QATJ->getQGateMetadata(&(*M));
 
   ASSERT_EQ(data_ptr->size(), GATE_TYPES);
 
-  for (std::map<StringRef, json::Object>::iterator it = data_ptr->begin();
+  for (std::map<std::string, json::Object>::iterator it = data_ptr->begin();
        it != data_ptr->end(); ++it) {
     errs() << "Gate Key : " << it->first << "\n";
   };

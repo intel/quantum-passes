@@ -84,7 +84,7 @@ INITIALIZE_PASS_END(SimpleQbitPlacementLegacyPass, "simple-qubit-placement",
 PreservedAnalyses SimpleQbitPlacementPass::run(Module &M,
                                                ModuleAnalysisManager &MAM) {
 
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
   if (!addTrivialQubitPlacement(*QMP.QM)) {
     displayErrorAndExit("SimpleQbitPlacementPass",
                         "Unable to add a qubit mapping.\n");

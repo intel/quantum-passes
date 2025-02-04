@@ -30,10 +30,10 @@ namespace llvm {
 // desired gate data Both are useful in certian cases
 
 /// Gets map iterator to gate data for identifier int
-std::map<StringRef, json::Object>::iterator getGateDataPtr(int identifier);
+std::map<std::string, json::Object>::iterator getGateDataPtr(int identifier);
 
 /// returns identifier for data pointer
-int getGateIdentifier(const std::map<StringRef, json::Object>::iterator iter);
+int getGateIdentifier(const std::map<std::string, json::Object>::iterator iter);
 
 /// retruns where identifier represents a gate
 bool isAGate(int identifier);
@@ -49,57 +49,58 @@ StringRef getGateName(int identifier);
 // (matrix) Get GateMatrixImag(int identifier);
 
 /// Is gate at map iterator Hermitian?
-bool isGateHermitian(std::map<StringRef, json::Object>::iterator iter);
+bool isGateHermitian(std::map<std::string, json::Object>::iterator iter);
 
 /// Is that gate for identifier Hermitian?
 bool isGateHermitian(int identifier);
 
 /// Is gate at map iterator Unitary?
-bool isGateUnitary(std::map<StringRef, json::Object>::iterator iter);
+bool isGateUnitary(std::map<std::string, json::Object>::iterator iter);
 
 /// Is that gate for identifier Unitary?
 bool isGateUnitary(int identifier);
 
 /// Is gate at map iterator Mutable?
-bool isGateMutable(std::map<StringRef, json::Object>::iterator iter);
+bool isGateMutable(std::map<std::string, json::Object>::iterator iter);
 
 /// Is  gate for identifier Mutable?
 bool isGateMutable(int identifier);
 
 /// Is gate at map iterator a user defined pulse sequence?
-bool isGateUserPulse(std::map<StringRef, json::Object>::iterator iter);
+bool isGateUserPulse(std::map<std::string, json::Object>::iterator iter);
 
 /// Is gate for identifier a user defined pulse sequence?
 bool isGateUserPulse(int identifier);
 
 /// For map iterator, populate vector<unsigned> with list corresponding to
 /// StringRef key and return true, or return false if entry was not found
-bool getGateList(std::map<StringRef, json::Object>::iterator iter,
-                 StringRef entry, std::vector<unsigned> &list);
+bool getGateList(std::map<std::string, json::Object>::iterator iter,
+                 std::string entry, std::vector<unsigned> &list);
 
 /// For identifier, populate vector<unsigned> with list corresponding to
 /// StringRef key and return true, or return false if entry was not found
-bool getGateList(int identifier, StringRef entry, std::vector<unsigned> &list);
+bool getGateList(int identifier, std::string entry,
+                 std::vector<unsigned> &list);
 
 /// For map iterator, populate vector<int> with list corresponding to
 /// StringRef key and return true, or return false if entry was not found
-bool getGateList(std::map<StringRef, json::Object>::iterator iter,
-                 StringRef entry, std::vector<int> &list);
+bool getGateList(std::map<std::string, json::Object>::iterator iter,
+                 std::string entry, std::vector<int> &list);
 
 /// For identifier, populate vector<int> with list corresponding to
 /// StringRef key and return true, or return false if entry was not found
-bool getGateList(int identifier, StringRef entry, std::vector<int> &list);
+bool getGateList(int identifier, std::string entry, std::vector<int> &list);
 
 /// For map iterator, return number of elements in qubit_list
 unsigned
-getGateNumQubitOperands(std::map<StringRef, json::Object>::iterator iter);
+getGateNumQubitOperands(std::map<std::string, json::Object>::iterator iter);
 
 /// For identifier, return number of elements in qubit_list
 unsigned getGateNumQubitOperands(int identifier);
 
 /// For map iterator, return number of elements in parametric_list
-unsigned
-getGateNumParametricOperands(std::map<StringRef, json::Object>::iterator iter);
+unsigned getGateNumParametricOperands(
+    std::map<std::string, json::Object>::iterator iter);
 
 /// For identifier, return number of elements in parametric_list
 unsigned getGateNumParametricOperands(int identifier);

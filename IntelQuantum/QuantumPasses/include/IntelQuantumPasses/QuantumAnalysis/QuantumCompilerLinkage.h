@@ -54,7 +54,7 @@ class QuantumCompilerLinkage {
 public:
   // QRT headers with ABI encoding.
   const std::string QRT_initialize_name =
-      "_ZN4qrt021initializeQrtSystem64EPdPcS1_";
+      "_ZN4qrt021initializeQrtSystem64EPdPcS1_j";
   std::vector<Type *> QRT_initialize_args;
   const std::string QRT_is_initialized_name = "_ZN4qrt013isInitializedEv";
   const std::string QRT_measure_move_name =

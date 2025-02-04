@@ -17,6 +17,7 @@
 #define LLVM_AQCC_QITER_H
 
 #include "IntelQuantumPasses/QuantumAnalysis/QuantumGateIdentifiers.h"
+#include "IntelQuantumPasses/QuantumAnalysis/QuantumModule.h"
 #include "IntelQuantumPasses/QuantumAnalysis/QuantumRefs.h"
 #include "IntelQuantumPasses/QuantumUtils/QuantumFLEQUtils.h"
 #include "llvm/IR/Function.h"
@@ -38,39 +39,19 @@ namespace aqcc {
 
 // Helper functions to get iterators at specific points
 // of basic blocks.
-inline inst_iterator inst_bb_begin(BasicBlock *b) {
-  inst_iterator II(*b->getParent());
-  while (!II.atEnd() && &(*II.getBasicBlockIterator()) != b)
-    ++II;
-  return II;
+inline Instruction *inst_bb_begin(BasicBlock *b) { return &*(b->begin()); }
+
+inline Instruction *inst_bb_end(BasicBlock *b) {
+  BasicBlock::iterator End = b->end();
+  End--;
+  return &*End;
 }
 
-inline inst_iterator inst_bb_end(BasicBlock *b) {
-  inst_iterator II(*b->getParent());
-  while (!II.atEnd() && &(*II.getBasicBlockIterator()) != b)
-    ++II;
-  if (!II.atEnd())
-    while (!II.atEnd() && &(*II.getInstructionIterator()) != &(b->back()))
-      ++II;
-  if (!II.atEnd() && &(*II.getInstructionIterator()) == &(b->back()))
-    ++II;
-  return II;
-}
-
-inline inst_iterator inst_at(BasicBlock::iterator it) {
-  BasicBlock *b = it->getParent();
-  inst_iterator II(*b->getParent());
-  while (!II.atEnd() && &(*II.getBasicBlockIterator()) != b)
-    ++II;
-  if (!II.atEnd())
-    while (&(*II.getInstructionIterator()) != &(*it))
-      ++II;
-  return II;
-}
+inline Instruction *inst_at(BasicBlock::iterator it) { return &*it; }
 
 /// primary type for angle parameters is double
 typedef double ParaType;
-typedef std::pair<inst_iterator, inst_iterator> qiter_range;
+typedef std::pair<Instruction *, Instruction *> qiter_range;
 
 class QbitRef;
 class ParaRef;
@@ -109,11 +90,23 @@ class QIter {
 
 protected:
   /// "constant" pointer to metadata
-  std::map<StringRef, json::Object> *q_GATEMETADATA_;
+  std::map<std::string, json::Object> *q_GATEMETADATA_;
   /// pointer to gate data for current gate pointed to by QIter
-  std::map<StringRef, json::Object>::iterator cur_gate_data_;
+  std::map<std::string, json::Object>::iterator cur_gate_data_;
   /// current gate QIter points to
-  inst_iterator q_iterator_;
+  Instruction *q_iterator_;
+
+  /// The beginning Instruction of the first BasicBlock in the
+  /// function. Useful for comparison when we do not want to go
+  /// beyond the bounds.
+  Instruction *BBBegin = nullptr;
+
+  /// Instructions that are operands to inserted quantum instructions
+  /// to the block that already existed in the IR prior to insertion
+  /// of the quantum gate. To be check for ordering issues later on.
+  std::vector<Instruction *> InstsToCheck;
+
+  static QuantumModule *QM;
 
   /// static map getter for updating qiter_range
   /// This is static so that the range can be updated between different
@@ -122,15 +115,57 @@ protected:
   static std::map<Function *, qiter_range> &getInstance_q_RANGE_MAP_();
 
   /// "constant" pointer to function
-  Function *FUNCT_;
+  Function *FUNCT_ = nullptr;
+
+  ///
+  bool RelevantOpsCollected = false;
+  std::set<Instruction *> RelevantBeginningOps;
 
   /// returns iterator pointing to the first Q call
-  virtual inst_iterator &q_BEGIN() {
+  virtual Instruction *q_BEGIN() {
     return getInstance_q_RANGE_MAP_()[FUNCT_].first;
   }
-  /// returns iterator pointing to the last Q call
-  virtual inst_iterator &q_END() {
+
+  virtual Instruction *q_END() {
     return getInstance_q_RANGE_MAP_()[FUNCT_].second;
+  }
+
+  virtual Instruction *set_q_BEGIN(Instruction *I) {
+    return getInstance_q_RANGE_MAP_()[FUNCT_].first = I;
+  }
+  /// returns iterator pointing to the last Q call
+  virtual Instruction *set_q_END(Instruction *I) {
+    return getInstance_q_RANGE_MAP_()[FUNCT_].second = I;
+  }
+
+  /// returns iterator pointing to the last Q call
+  virtual void advance_q_iterator_() {
+    if (q_iterator_->getNextNode() == nullptr) {
+      BasicBlock *NewBlock =
+          q_iterator_->getParent()->getIterator()->getNextNode();
+      if (NewBlock == nullptr) {
+        q_iterator_ = nullptr;
+        return;
+      }
+      q_iterator_ = &*(NewBlock->begin());
+      return;
+    }
+    q_iterator_ = q_iterator_->getNextNode();
+  }
+
+  /// returns iterator pointing to the last Q call
+  virtual void reverse_q_iterator_() {
+    if (q_iterator_->getPrevNode() == nullptr) {
+      BasicBlock *NewBlock =
+          q_iterator_->getParent()->getIterator()->getPrevNode();
+      if (NewBlock == nullptr) {
+        q_iterator_ = nullptr;
+        return;
+      }
+      q_iterator_ = &(NewBlock->back());
+      return;
+    }
+    q_iterator_ = q_iterator_->getPrevNode();
   }
 
 public:
@@ -141,12 +176,15 @@ public:
 
   // This constructor initializes on the current or next nearest gate to
   // inst_iterator
-  QIter(Function &F, inst_iterator it);
+  QIter(Function &F, Instruction *it);
 
   ~QIter(){};
 
   // External-facing accessors
   Function *getFunction() { return FUNCT_; }
+
+  static void setQuantumModule(QuantumModule *NewQM);
+  static QuantumModule *getQuantumModule();
 
   /// Is Qiter point at the first Q call?
   bool isBegin();
@@ -211,7 +249,7 @@ public:
   std::vector<QbitRef> getControlQubits();
 
   // returns the iterator into F which the current q call instruction
-  inst_iterator getGateInstIterator() { return q_iterator_; };
+  Instruction *getGateInstIterator() { return q_iterator_; };
 
   /// Returns 1 if the current gate commutes with gate pointed at by the input,
   /// 0 if they do not commute and -1 if not determined by methods used.
@@ -223,10 +261,10 @@ public:
   // External-facing iterator Maniputators
   //
   /// Advance Qiter to the next q call instruction
-  inst_iterator operator++();
+  Instruction *operator++();
 
   /// Advance to previous q call instruction
-  inst_iterator operator--();
+  Instruction *operator--();
 
   /// Dereference to the call instuction pointed to by QIter
   Instruction &operator*();
@@ -237,10 +275,10 @@ public:
   int translateIterator(int);
 
   /// Move QIter to BEGIN
-  inst_iterator gotoBegin();
+  Instruction *gotoBegin();
 
   /// Move QIter to END
-  inst_iterator gotoEnd();
+  Instruction *gotoEnd();
 
   /// Moves QIter to the next instance of a gate with given gate identifier and
   /// returns "true", or to END and returns "false"
@@ -291,15 +329,29 @@ public:
   /// Adds the gate specified by "identifier" with qubit operands before the
   /// gate currently pointed to, leaves Qiter at new gate and returns true, or
   /// leaves Qiter as is and returns "false" If QbitRef and ParaRef Lists don't
-  /// match those of the identifier, then the retun is "false".
+  /// match those of the identifier, then the retrun is "false".
+  /// If FixOrder is true, then the call to this gate will ensure that operands
+  /// to the inserted gates are correct, this requires full iteration of the
+  /// entire block. If performing repeated insertions, there can be time savings
+  /// by setting FixOrder to false, waiting until all insertions are completed,
+  /// then using updateGateDependencies, manually.
   bool insertGate(int identifier, std::vector<QbitRef> &,
-                  std::vector<ParaRef> &);
+                  std::vector<ParaRef> &, bool FixOrder = true);
 
   // For gates which are known to have no parameters
-  bool insertGate(int identifier, std::vector<QbitRef> &q) {
+  bool insertGate(int identifier, std::vector<QbitRef> &q,
+                  bool FixOrder = true) {
     std::vector<ParaRef> temp;
-    return insertGate(identifier, q, temp);
+    return insertGate(identifier, q, temp, FixOrder);
   }
+
+  /// During insertion, the order of the dependencies may not always be correct.
+  /// Use this function to iterate over the blocks in the function and correct
+  /// the ordering of problematic operands.
+  virtual void updateGateDependencies();
+
+  /// Add an instruction to check for gate dependency ordering.
+  void addToInstsToCheck(Instruction *I) { InstsToCheck.push_back(I); }
 
   // Changes the gate type to "identifier"
   // This will check that arguments are the same and return false if not the
@@ -326,10 +378,11 @@ protected:
 
 public:
   // backtrace split for use in other functions
-  QbitRef qubit_backtrace_helper(Instruction *, unsigned);
+  QbitRef qubit_backtrace_helper(Instruction *, unsigned, bool warn = true);
 
   // backtrace split for use in other functions
-  ParaRef parametric_backtrace_helper(Instruction *, unsigned);
+  ParaRef parametric_backtrace_helper(Instruction *, unsigned,
+                                      bool warn = true);
 
 protected:
   // The following are private IR manipulators
@@ -382,12 +435,28 @@ protected:
   using QIter::FUNCT_;
 
   /// returns iterator pointing to the first Q call
-  inst_iterator &q_BEGIN() override {
+  Instruction *q_BEGIN() override {
     return getInstance_q_BB_RANGE_MAP_()[BB_].first;
   }
   /// returns iterator pointing to the last Q call
-  inst_iterator &q_END() override {
+  Instruction *q_END() override {
     return getInstance_q_BB_RANGE_MAP_()[BB_].second;
+  }
+
+  Instruction *set_q_BEGIN(Instruction *I) override {
+    return getInstance_q_BB_RANGE_MAP_()[BB_].first = I;
+  }
+
+  Instruction *set_q_END(Instruction *I) override {
+    return getInstance_q_BB_RANGE_MAP_()[BB_].first = I;
+  }
+
+  void advance_q_iterator_() override {
+    q_iterator_ = q_iterator_->getNextNode();
+  }
+
+  void reverse_q_iterator_() override {
+    q_iterator_ = q_iterator_->getPrevNode();
   }
 
   // for internal use only, thus it is protected
@@ -399,11 +468,13 @@ public:
 
   // This constructor initializes on the current or next nearest gate to
   // inst_iterator
-  QBBIter(BasicBlock &B, inst_iterator it);
+  QBBIter(BasicBlock &B, Instruction *it);
 
   ~QBBIter(){};
 
   BasicBlock *getBasicBlock() { return BB_; }
+
+  void updateGateDependencies() override;
 
   friend class ParaRef;
 };

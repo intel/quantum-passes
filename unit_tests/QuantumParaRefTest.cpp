@@ -184,68 +184,67 @@ TEST(ParaRefTest, CtorSetterTest) {
       EXPECT_NEAR(0.1, para0.getValueResolved().value(), TOL);
       EXPECT_NEAR(1, para1.getValueResolved().value(), TOL);
 
-      inst_iterator iter = inst_begin(F);
       QIter qit(F);
-      iter = qit.getGateInstIterator();
+      Instruction *iter = qit.getGateInstIterator();
 
-      --iter;
+      iter = iter->getPrevNode();
       ParaRef para2(iter);
-      EXPECT_EQ(dyn_cast<Value>(&*iter), para2.getValue());
+      EXPECT_EQ(dyn_cast<Value>(iter), para2.getValue());
       iter = ++qit;
 
-      --iter;
+      iter = iter->getPrevNode();
       ParaRef para3(iter);
-      EXPECT_EQ(dyn_cast<Value>(&*iter), para3.getValue());
+      EXPECT_EQ(dyn_cast<Value>(iter), para3.getValue());
       iter = ++qit;
 
-      --iter;
+      iter = iter->getPrevNode();
       ParaRef para4(iter);
-      EXPECT_EQ(dyn_cast<Value>(&*iter), para4.getValue());
+      EXPECT_EQ(dyn_cast<Value>(iter), para4.getValue());
       iter = ++qit;
 
-      --iter;
+      iter = iter->getPrevNode();
       ParaRef para5(iter);
-      EXPECT_EQ(dyn_cast<Value>(&*iter), para5.getValue());
+      EXPECT_EQ(dyn_cast<Value>(iter), para5.getValue());
       iter = ++qit;
 
-      --iter;
+      iter = iter->getPrevNode();
       ParaRef para6(iter);
-      EXPECT_EQ(dyn_cast<Value>(&*iter), para6.getValue());
+      EXPECT_EQ(dyn_cast<Value>(iter), para6.getValue());
       iter = ++qit;
 
-      --iter;
+      iter = iter->getPrevNode();
       ParaRef para7(iter);
-      EXPECT_EQ(dyn_cast<Value>(&*iter), para7.getValue());
+      EXPECT_EQ(dyn_cast<Value>(iter), para7.getValue());
       iter = ++qit;
 
-      --iter;
+      iter = iter->getPrevNode();
       ParaRef para8(iter);
-      EXPECT_EQ(dyn_cast<Value>(&*iter), para8.getValue());
+      EXPECT_EQ(dyn_cast<Value>(iter), para8.getValue());
       iter = ++qit;
 
-      --iter;
+      iter = iter->getPrevNode();
       ParaRef para9(iter);
-      EXPECT_EQ(dyn_cast<Value>(&*iter), para9.getValue());
+      EXPECT_EQ(dyn_cast<Value>(iter), para9.getValue());
       iter = ++qit;
 
-      --iter;
+      iter = iter->getPrevNode();
       ParaRef para10(iter);
-      EXPECT_EQ(dyn_cast<Value>(&*iter), para10.getValue());
+      EXPECT_EQ(dyn_cast<Value>(iter), para10.getValue());
       iter = ++qit;
 
-      --iter;
+      iter = iter->getPrevNode();
       ParaRef para11(iter);
-      EXPECT_EQ(dyn_cast<Value>(&*iter), para11.getValue());
+      EXPECT_EQ(dyn_cast<Value>(iter), para11.getValue());
       iter = ++qit;
 
-      --iter;
+      iter = iter->getPrevNode();
       ParaRef para12(iter);
-      EXPECT_EQ(dyn_cast<Value>(&*iter), para12.getValue());
+      EXPECT_EQ(dyn_cast<Value>(iter), para12.getValue());
       iter = ++qit;
 
-      --iter;
+      iter = iter->getPrevNode();
       ParaRef para13(iter);
-      EXPECT_EQ(dyn_cast<Value>(&*iter), para13.getValue());
+      EXPECT_EQ(dyn_cast<Value>(iter), para13.getValue());
     }
   };
 }

@@ -14,6 +14,7 @@
 #include "IntelQuantumPasses/QuantumAnalysis/QuantumAnnotationsToJson.h"
 #include "IntelQuantumPasses/QuantumAnalysis/QuantumGateIdentifiers.h"
 #include "IntelQuantumPasses/QuantumAnalysis/QuantumIterator.h"
+#include "IntelQuantumPasses/QuantumAnalysis/QuantumSpinNativeToJson.h"
 #include "IntelQuantumPasses/QuantumUtils/QuantumGeneralUtils.h"
 
 #define DEBUG_TYPE "quantum-compiler-linkage"
@@ -49,12 +50,12 @@ void QuantumCompilerLinkage::doInitialization(Module &M, QuantumModule &QM) {
   // populate argument type lists for QRT
 
   LLVMContext &C = M.getContext();
-  QRT_initialize_args = {/*ptr*/ Type::getInt8PtrTy(C),
-                         /*ptr*/ Type::getInt8PtrTy(C),
-                         /*ptr*/ Type::getInt8PtrTy(C)};
+  QRT_initialize_args = {/*ptr*/ PointerType::getInt8PtrTy(C),
+                         /*ptr*/ PointerType::getInt8PtrTy(C),
+                         /*ptr*/ PointerType::getInt8PtrTy(C)};
   QRT_measure_move_args = {/*ptr*/ Type::getInt8PtrTy(C), Type::getInt64Ty(C),
                            Type::getInt1Ty(C)};
-  QRT_exit_args = {/*ptr*/ Type::getInt8PtrTy(C)};
+  QRT_exit_args = {/*ptr*/ PointerType::getInt8PtrTy(C)};
   Type *FTy = dyn_cast<Type>(FunctionType::get(Type::getVoidTy(C), false));
   if (!FTy)
     return;
@@ -65,6 +66,7 @@ void QuantumCompilerLinkage::doInitialization(Module &M, QuantumModule &QM) {
   // initialize QM
   QM.base = &M;
   ParaRef::setModule(M);
+  QIter::setQuantumModule(&QM);
   if (QM.sdk_json_filename == "")
     QM.sdk_json_filename = Config;
   if (QM.sdk_path == "")
@@ -137,6 +139,9 @@ void QuantumCompilerLinkage::checkForConditioning(Module &M,
   if (QM.isConditioned())
     return;
 
+  if (QM.q_kernel_list.size() == 0)
+    QM.setConditioned();
+
   // ASSUMPTION: if there are QBBs, then the module is conditioned
   for (auto &QK : QM) {
     if (QK.begin() != QK.end())
@@ -146,8 +151,7 @@ void QuantumCompilerLinkage::checkForConditioning(Module &M,
 
 void QuantumCompilerLinkage::checkForNative(Module &M, QuantumModule &QM) {
 
-  std::map<StringRef, json::Object> *q_GATEMETADATA_ =
-      QuantumAnnotationsToJson::qGateMetadata;
+  std::map<std::string, json::Object> *q_GATEMETADATA_ = &QM.q_gate_metadata;
 
   // We can't check this until quantum annotations to json is run.
   if (!q_GATEMETADATA_ || q_GATEMETADATA_->size() == 0)
@@ -155,6 +159,9 @@ void QuantumCompilerLinkage::checkForNative(Module &M, QuantumModule &QM) {
 
   if (QM.isNative())
     return;
+
+  if (QM.q_kernel_list.size() == 0)
+    QM.setNative();
 
   // Look for canonical gates in the circuit.
   bool foundAny = false;
@@ -182,8 +189,7 @@ void QuantumCompilerLinkage::checkForNative(Module &M, QuantumModule &QM) {
 
 void QuantumCompilerLinkage::checkForIMM(Module &M, QuantumModule &QM) {
 
-  std::map<StringRef, json::Object> *q_GATEMETADATA_ =
-      QuantumAnnotationsToJson::qGateMetadata;
+  std::map<std::string, json::Object> *q_GATEMETADATA_ = &QM.q_gate_metadata;
 
   // We can't check this until quantum annotations to json is run.
   if (!q_GATEMETADATA_ || q_GATEMETADATA_->size() == 0)
@@ -191,6 +197,9 @@ void QuantumCompilerLinkage::checkForIMM(Module &M, QuantumModule &QM) {
 
   if (QM.isAllIMM())
     return;
+
+  if (QM.q_kernel_list.size() == 0)
+    QM.setAllIMM();
 
   bool foundAny = false;
   bool foundNative = false;
@@ -222,8 +231,7 @@ void QuantumCompilerLinkage::checkForIMM(Module &M, QuantumModule &QM) {
 
 void QuantumCompilerLinkage::checkForMapped(Module &M, QuantumModule &QM) {
 
-  std::map<StringRef, json::Object> *q_GATEMETADATA_ =
-      QuantumAnnotationsToJson::qGateMetadata;
+  std::map<std::string, json::Object> *q_GATEMETADATA_ = &QM.q_gate_metadata;
 
   // We can't check this until quantum annotations to json is run.
   if (!q_GATEMETADATA_ || q_GATEMETADATA_->size() == 0)
@@ -231,6 +239,9 @@ void QuantumCompilerLinkage::checkForMapped(Module &M, QuantumModule &QM) {
 
   if (QM.isMapped())
     return;
+
+  if (QM.q_kernel_list.size() == 0)
+    QM.setMapped();
 
   // Iterate over all instructions and check if all the references
   // to qubits are QIDs instead.  If one is found, we know that it
@@ -260,8 +271,7 @@ void QuantumCompilerLinkage::checkForMapped(Module &M, QuantumModule &QM) {
 
 void QuantumCompilerLinkage::checkForInRange(Module &M, QuantumModule &QM) {
 
-  std::map<StringRef, json::Object> *q_GATEMETADATA_ =
-      QuantumAnnotationsToJson::qGateMetadata;
+  std::map<std::string, json::Object> *q_GATEMETADATA_ = &QM.q_gate_metadata;
 
   // We can't check this until quantum annotations to json is run.
   if (!q_GATEMETADATA_ || q_GATEMETADATA_->size() == 0)
@@ -269,6 +279,9 @@ void QuantumCompilerLinkage::checkForInRange(Module &M, QuantumModule &QM) {
 
   if (QM.isAnglesInRange() || !QM.isMapped())
     return;
+
+  if (QM.q_kernel_list.size() == 0)
+    QM.setAnglesInRange();
 
   bool foundAny = false;
   bool foundOutOfRange = false;
@@ -321,6 +334,9 @@ void QuantumCompilerLinkage::checkForSeparation(Module &M, QuantumModule &QM) {
 
   if (QM.isSimpleQBBSplit())
     return;
+
+  if (QM.q_kernel_list.size() == 0)
+    QM.setSimpleQBBSplit();
 
   // ASSUMPTION: This function will assume that if QRT run_qbb function has any
   // uses, then the simple QBBs have been split.
@@ -437,9 +453,18 @@ QuantumModuleProxy
 llvm::QuantumCompilerLinkageAnalysis::run(Module &M,
                                           ModuleAnalysisManager &AM) {
   QuantumCompilerLinkage QCL;
-  QuantumModule *QM = new QuantumModule;
-  updateCompilerLinkage(M, *QM);
-  auto QMP = QuantumModuleProxy(QM);
+  // QuantumModule QM = new QuantumModule;
+  // updateCompilerLinkage(M, *QM);
+  auto QMP = QuantumModuleProxy();
+  QuantumModule *TempQM = new QuantumModule;
+  if (QMP.QM)
+    TempQM->q_gate_metadata = QMP.QM->q_gate_metadata;
+  QMP.QM.reset(TempQM);
+  QuantumAnnotationsToJson QAJ;
+  QuantumSpinNativeToJson QSNJ;
+  QAJ.doInitialization(M, *QMP.QM);
+  QSNJ.addSpinNativeFunctions(M, *QMP.QM);
+  updateCompilerLinkage(M, *QMP.QM);
   return QMP;
 }
 

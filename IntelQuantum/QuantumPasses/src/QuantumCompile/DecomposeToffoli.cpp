@@ -163,7 +163,7 @@ INITIALIZE_PASS(DecomposeToffoliLegacyPass, "decompose-toff",
 
 PreservedAnalyses DecomposeToffoliPass::run(Module &M,
                                             ModuleAnalysisManager &MAM) {
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
   for (auto &QK : *QMP.QM) {
     for (auto &QBB : QK) {
       decomposeAllToffoli(QBB);

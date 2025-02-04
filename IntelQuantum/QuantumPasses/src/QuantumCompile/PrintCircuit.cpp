@@ -211,8 +211,4 @@ struct PrintCircuit : public ModulePass {
 } // end anonymous namespace
 
 char PrintCircuit::ID = 0;
-static RegisterPass<PrintCircuit> X("print_circuit",
-                                    "Print Quantum Circuit Pass",
-                                    false /* Only looks at CFG */,
-                                    false /* Analysis Pass */);
 #undef DEBUG_TYPE

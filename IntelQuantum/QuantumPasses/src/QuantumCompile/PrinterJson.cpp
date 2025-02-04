@@ -23,11 +23,11 @@
 #define DEBUG_TYPE "json"
 
 using jsonAPI = nlohmann::ordered_json; // preserve the insertion order
-extern cl::opt<std::string> comp_pos;
 extern cl::list<std::string> quantum_debug;
 
-PrinterJson::PrinterJson(proofreader::ProofReader *read) {
+PrinterJson::PrinterJson(proofreader::ProofReader *read, std::string comp_pos) {
   this->reader = read;
+  this->comp_pos = comp_pos;
 }
 
 void PrinterJson::writeToFile(std::vector<std::vector<std::string>> &str) {

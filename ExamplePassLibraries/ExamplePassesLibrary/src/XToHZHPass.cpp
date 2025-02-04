@@ -73,7 +73,7 @@ static void ConvertXToHZH(BasicBlock &QBB) {
 }
 
 PreservedAnalyses XToHZHPass::run(Module &M, ModuleAnalysisManager &MAM) {
-  llvm::aqcc::QuantumModuleProxy QMP =
+  llvm::aqcc::QuantumModuleProxy &QMP =
       MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
   for (auto &QK : *QMP.QM) {
     for (auto &QBB : QK) {

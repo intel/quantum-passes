@@ -87,7 +87,7 @@ public:
 // Mocks out Pass for testing Differential Cost
 PreservedAnalyses
 QuantumInitPlacementPassCostMock::run(Module &M, ModuleAnalysisManager &MAM) {
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
   QuantumInitPlacement QIP;
   aqcc::initializeGlobalQubitMap(*(QMP.QM));
   aqcc::initializeQBBQubitMap(*(QMP.QM));
@@ -205,7 +205,7 @@ TEST(LocalSearchTest, local_3x3_1) {
 
   std::unique_ptr<Module> M = parseIR(C, *&local_3x3_grid_1);
 
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(*M);
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(*M);
 
   // manually set json filename
   QMP.QM->sdk_json_filename =
@@ -265,7 +265,7 @@ TEST(LocalSearchTest, local_search_test) {
 
   std::unique_ptr<Module> M = parseIR(C, *&local_3x3_grid_1);
 
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(*M);
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(*M);
   // manually set json filename
   QMP.QM->sdk_json_filename =
       std::string(CONFIGURATION_DIR) + "/square_9q_sdk.json";
@@ -360,7 +360,7 @@ TEST(LocalSearchTest, local_3x3_2) {
 
   std::unique_ptr<Module> M = parseIR(C, *&local_3x3_grid_2);
 
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(*M);
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(*M);
 
   // manually set json filename
   QMP.QM->sdk_json_filename =
@@ -425,7 +425,7 @@ TEST(LocalSearchTest, square_grid) {
 
   std::unique_ptr<Module> M = parseIR(C, *&tfd_example);
 
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(*M);
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(*M);
 
   // manually set json filename
   QMP.QM->sdk_json_filename =
@@ -484,7 +484,7 @@ TEST(LocalSearchTest, local_5x5_grid) {
 
   std::unique_ptr<Module> M = parseIR(C, *&local_5x5_grid);
 
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(*M);
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(*M);
 
   // manually set json filename
   QMP.QM->sdk_json_filename =
@@ -584,7 +584,7 @@ TEST(LocalSearchTest, differential_cost) {
 
   std::unique_ptr<Module> M = parseIR(C, *&local_5x5_grid);
 
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(*M);
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(*M);
 
   // manually set json filename
   QMP.QM->sdk_json_filename =

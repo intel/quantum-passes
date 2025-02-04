@@ -21,7 +21,7 @@
 class PrinterJson : public Printer {
 public:
   // Constructor and destructor
-  PrinterJson(proofreader::ProofReader *read);
+  PrinterJson(proofreader::ProofReader *read, std::string comp_pos = "");
   PrinterJson() = delete;
   ~PrinterJson() = default;
 
@@ -30,6 +30,7 @@ public:
 
 private:
   proofreader::ProofReader *reader;
+  std::string comp_pos = "";
 
   // Write to a file
   void writeToFile(std::vector<std::vector<std::string>> &str);

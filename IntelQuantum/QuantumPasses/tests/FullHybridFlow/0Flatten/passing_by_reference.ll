@@ -400,7 +400,7 @@ entry:
 ; Function Attrs: mustprogress noinline uwtable
 define dso_local void @_Z22pass_qarray_by_pointerPt.stub(ptr noundef "qubit_ref" %qubit_vec) local_unnamed_addr #0 section ".qbbs_text" {
 ; CHECK-LABEL: define dso_local void @_Z22pass_qarray_by_pointerPt.stub
-; CHECK-SAME: (ptr noundef "qubit_ref" [[QUBIT_VEC:%.*]]) local_unnamed_addr #[[ATTR0]] section ".qbbs_text" {
+; CHECK-SAME: (ptr noundef "qubit_ref" [[QUBIT_VEC:%.*]]) local_unnamed_addr #[[ATTR1:[0-9]+]] section ".qbbs_text" {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    br label [[FOR_BODY:%.*]]
 ; CHECK:       for.cond.cleanup:
@@ -437,7 +437,7 @@ declare void @llvm.lifetime.end.p0(i64 immarg, ptr nocapture) #2
 ; Function Attrs: mustprogress noinline uwtable
 define dso_local void @_Z22pass_qbit_by_referenceRt.stub(ptr noundef nonnull align 2 dereferenceable(2) "qubit_ref" %q) local_unnamed_addr #0 section ".qbbs_text" {
 ; CHECK-LABEL: define dso_local void @_Z22pass_qbit_by_referenceRt.stub
-; CHECK-SAME: (ptr noundef nonnull align 2 dereferenceable(2) "qubit_ref" [[Q:%.*]]) local_unnamed_addr #[[ATTR0]] section ".qbbs_text" {
+; CHECK-SAME: (ptr noundef nonnull align 2 dereferenceable(2) "qubit_ref" [[Q:%.*]]) local_unnamed_addr #[[ATTR1]] section ".qbbs_text" {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    tail call void @_Z1XRt(ptr noundef nonnull align 2 dereferenceable(2) [[Q]])
 ; CHECK-NEXT:    ret void

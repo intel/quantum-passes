@@ -109,7 +109,7 @@ INITIALIZE_PASS_END(QuantumClassicalModuleSplitLegacyPass,
 
 PreservedAnalyses
 QuantumClassicalModuleSplitPass::run(Module &M, ModuleAnalysisManager &MAM) {
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
   printQModuleToFile(*QMP.QM);
 
   return PreservedAnalyses::all();

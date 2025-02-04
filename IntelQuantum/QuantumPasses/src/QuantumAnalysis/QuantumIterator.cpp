@@ -23,6 +23,8 @@ using namespace llvm;
 namespace llvm {
 namespace aqcc {
 
+QuantumModule *QIter::QM = nullptr;
+
 std::map<Function *, qiter_range> &QIter::getInstance_q_RANGE_MAP_() {
   static std::map<Function *, qiter_range> q_RANGE_MAP_ =
       std::map<Function *, qiter_range>();
@@ -35,6 +37,10 @@ std::map<BasicBlock *, qiter_range> &QBBIter::getInstance_q_BB_RANGE_MAP_() {
   return q_BB_RANGE_MAP_;
 }
 
+void QIter::setQuantumModule(QuantumModule *NewQM) { QM = NewQM; }
+
+QuantumModule *QIter::getQuantumModule() { return QM; }
+
 ////////////////////////////////////////////////////////////////////////////////
 // Constructor
 
@@ -43,7 +49,7 @@ QIter::QIter(Function &F) : FUNCT_(&F) {
   // Set Qmetadata
   // QIter assumes that the QuantumAnnotationsToJsonPass has been run
 
-  q_GATEMETADATA_ = QuantumAnnotationsToJson::qGateMetadata;
+  q_GATEMETADATA_ = &(QM->q_gate_metadata);
 
   if (q_GATEMETADATA_->size() == 0) {
     LLVM_DEBUG(
@@ -57,10 +63,12 @@ QIter::QIter(Function &F) : FUNCT_(&F) {
   }
 
   // iterate through to set beginning and end gate call
-  inst_iterator begin = inst_begin(*FUNCT_);
-  inst_iterator end = inst_end(*FUNCT_);
+  Instruction *begin = &*inst_begin(*FUNCT_);
+  BBBegin = begin;
+  inst_iterator end_iter = inst_end(*FUNCT_);
+  end_iter--;
   // use last terminator as end;
-  --end;
+  Instruction *end = &(*(end_iter));
 
   // initialize range map so it's there for is_qgate()
   getInstance_q_RANGE_MAP_()[FUNCT_] = qiter_range(begin, end);
@@ -68,37 +76,47 @@ QIter::QIter(Function &F) : FUNCT_(&F) {
   q_iterator_ = begin;
 
   while (!is_qgate() && q_iterator_ != end)
-    ++q_iterator_;
+    advance_q_iterator_();
   begin = q_iterator_;
   end = q_iterator_;
 
   while (q_iterator_ != q_END()) {
     if (is_qgate())
       end = q_iterator_;
-    ++q_iterator_;
+    advance_q_iterator_();
   };
 
   if (end != q_END())
-    ++end;
+    end = end->getNextNode();
 
   // Add or uppdate range to the q_RANGE_MAP_
   getInstance_q_RANGE_MAP_()[FUNCT_] = qiter_range(begin, end);
 
   q_iterator_ = q_BEGIN();
   is_qgate(); // sets cur_gate_data_
+
+  for (Instruction *it = inst_bb_begin(q_iterator_->getParent());
+       it != q_iterator_; it = it->getNextNode()) {
+    if ((dyn_cast<AllocaInst>(it)))
+      RelevantBeginningOps.insert(it);
+    else if ((dyn_cast<StoreInst>(it)))
+      RelevantBeginningOps.insert(it);
+    else if ((dyn_cast<PHINode>(it)))
+      RelevantBeginningOps.insert(it);
+  }
 }
 
-QIter::QIter(Function &F, inst_iterator it) : QIter(F) {
+QIter::QIter(Function &F, Instruction *it) : QIter(F) {
 
   // Set q_iterator_ to it or next nearest gate
 
   // if it is beyond q_END(), we set it to q_END()
-  if (std::distance(it, q_END()) < 0)
+  if (std::distance(it->getIterator(), q_END()->getIterator()) < 0)
     gotoEnd();
   else {
     q_iterator_ = it;
     while (!is_qgate() && q_iterator_ != q_END())
-      ++q_iterator_;
+      advance_q_iterator_();
   }
 }
 
@@ -109,7 +127,7 @@ QBBIter::QBBIter(BasicBlock &B) : BB_(&B) {
   // Set Qmetadata
   // QBBIter assumes that the QuantumAnnotationsToJsonPass has been run
 
-  q_GATEMETADATA_ = QuantumAnnotationsToJson::qGateMetadata;
+  q_GATEMETADATA_ = &(QM->q_gate_metadata);
 
   if (q_GATEMETADATA_->size() == 0) {
     LLVM_DEBUG(
@@ -124,9 +142,9 @@ QBBIter::QBBIter(BasicBlock &B) : BB_(&B) {
   }
 
   // iterate through to set beginning and end gate call
-  inst_iterator begin = inst_bb_begin(BB_);
-  inst_iterator end = inst_bb_end(BB_);
-  --end;
+  Instruction *begin = inst_bb_begin(BB_);
+  BBBegin = begin;
+  Instruction *end = inst_bb_end(BB_);
   // setting end to always be the terminator of the BB
   if (&*end != BB_->getTerminator()) {
     std::string ErrMsg =
@@ -140,7 +158,7 @@ QBBIter::QBBIter(BasicBlock &B) : BB_(&B) {
   q_iterator_ = begin;
 
   while (!is_qgate() && q_iterator_ != end)
-    ++q_iterator_;
+    advance_q_iterator_();
   begin = q_iterator_;
 
   // Add or uppdate range to the q_BB_RANGE_MAP_
@@ -148,19 +166,29 @@ QBBIter::QBBIter(BasicBlock &B) : BB_(&B) {
 
   q_iterator_ = q_BEGIN();
   is_qgate(); // sets cur_gate_data_
+
+  for (Instruction *it = inst_bb_begin(BB_); it != q_iterator_;
+       it = it->getNextNode()) {
+    if ((dyn_cast<AllocaInst>(it)))
+      RelevantBeginningOps.insert(it);
+    else if ((dyn_cast<StoreInst>(it)))
+      RelevantBeginningOps.insert(it);
+    else if ((dyn_cast<PHINode>(it)))
+      RelevantBeginningOps.insert(it);
+  }
 }
 
-QBBIter::QBBIter(BasicBlock &B, inst_iterator it) : QBBIter(B) {
+QBBIter::QBBIter(BasicBlock &B, Instruction *it) : QBBIter(B) {
 
   // Set q_iterator_ to it or next nearest gate
 
   // if it is beyond q_END(), we set it to q_END()
-  if (std::distance(it, q_END()) < 0)
+  if (std::distance(it->getIterator(), q_END()->getIterator()) < 0)
     gotoEnd();
   else {
     q_iterator_ = it;
     while (!is_qgate() && q_iterator_ != q_END())
-      ++q_iterator_;
+      advance_q_iterator_();
   }
 }
 
@@ -367,9 +395,6 @@ int QIter::commutesWith(QIter &other) {
             // zero result if the bases are the same
             if (basis_this[i] == basis_other[j])
               result = 0;
-            // or if the basis is the identity for either
-            else if (basis_this[i] < 0 || basis_other[j] < 0)
-              result = 0;
           }
           // with unresolved local basis, can not resolve if commutes or not
           else
@@ -391,25 +416,25 @@ int QIter::commutesWith(QIter &other) {
 ////////////////////////////////////////////////////////////////////////////////
 // QIter movers
 
-inst_iterator QIter::operator++() {
+Instruction *QIter::operator++() {
 
   if (isEnd())
     return q_iterator_;
 
   do {
-    ++q_iterator_;
+    advance_q_iterator_();
   } while (!is_qgate() && !isEnd());
 
   return q_iterator_;
 }
 
-inst_iterator QIter::operator--() {
+Instruction *QIter::operator--() {
 
   if (isBegin())
     return q_iterator_;
 
   do {
-    --q_iterator_;
+    reverse_q_iterator_();
   } while (!is_qgate() && !isBegin());
 
   return q_iterator_;
@@ -437,7 +462,7 @@ int QIter::translateIterator(int steps) {
   return out;
 }
 
-inst_iterator QIter::gotoBegin() {
+Instruction *QIter::gotoBegin() {
 
   q_iterator_ = this->q_BEGIN();
   if (!isEnd())
@@ -449,7 +474,7 @@ inst_iterator QIter::gotoBegin() {
   return q_iterator_;
 }
 
-inst_iterator QIter::gotoEnd() {
+Instruction *QIter::gotoEnd() {
 
   q_iterator_ = this->q_END();
   // assert(!is_qgate()); // sets cur_gate_data_
@@ -638,6 +663,8 @@ bool QIter::removeGate() {
     // put iterator at gate just after this one
     // if we are at the beginning, we need to update range map if successful
     bool update = isBegin();
+    bool update_BBBegin = q_iterator_ == BBBegin;
+    BasicBlock *CurrentBB = q_iterator_->getParent();
     operator++();
 
     for (size_t i = 0; i < qbit_ops.size(); i++)
@@ -657,9 +684,13 @@ bool QIter::removeGate() {
     // Don't need to remove anything
     // let dead instruction clean-up handle any parameter instructions
 
+    if (update) {
+      BBBegin = &*CurrentBB->begin();
+    }
+
     // if successful, update range map
     if (update && out) {
-      this->q_BEGIN() = q_iterator_;
+      this->set_q_BEGIN(q_iterator_);
     }
   }
 
@@ -671,9 +702,24 @@ bool QIter::removeGate() {
   return out;
 }
 
-bool QIter::insertGate(int identifier, std::vector<QbitRef> &qbits,
-                       std::vector<ParaRef> &paras) {
+void QIter::updateGateDependencies() {
+  if (InstsToCheck.size() < 1)
+    return;
+  if (!FUNCT_)
+    return;
+  for (BasicBlock &BB : *FUNCT_) {
+    updateGatesForBB(BB, InstsToCheck);
+  }
+}
 
+void QBBIter::updateGateDependencies() {
+  if (InstsToCheck.size() < 1)
+    return;
+  updateGatesForBB(*BB_, InstsToCheck);
+}
+
+bool QIter::insertGate(int identifier, std::vector<QbitRef> &qbits,
+                       std::vector<ParaRef> &paras, bool FixOrder) {
   // check that identifier corresponds to a gate
   if (!isAGate(identifier)) {
     errs() << "QIter Error: insertGate identifier " << identifier
@@ -702,123 +748,44 @@ bool QIter::insertGate(int identifier, std::vector<QbitRef> &qbits,
   }
 
   Instruction *II;
-  // if we are at the begining, we insert after the latest Instruction for gate
-  // arguments (or begin if this is an argument) We will also have to update the
-  // range map
+
+  // if we are at the beginning, we will need to update the range map
+  // appropriately at the end. This creates a reference value to come back to
+  // later.
   bool update = isBegin();
 
+  // Get the original basic block for reference.
   BasicBlock *beg_BB = this->q_BEGIN()->getParent();
-  if (update) {
 
-    std::set<Instruction *> new_insts;
-
-    for (size_t i = 0; i < qbits.size(); i++) {
-      assert(!qbits[i].isNull() && "can't insert a NULL qubit!");
-      if (!qbits[i].isQID()) {
-        if (Instruction *Itemp = dyn_cast<Instruction>(qbits[i].getRegister()))
-          new_insts.insert(Itemp);
-        if (!qbits[i].is_index_owned()) {
-          if (Instruction *Itemp = dyn_cast<Instruction>(qbits[i].getIndex()))
-            new_insts.insert(Itemp);
-        }
-      }
-    };
-
-    for (size_t i = 0; i < paras.size(); i++) {
-      if (!paras[i].is_value_owned()) {
-        if (Instruction *Itemp = dyn_cast<Instruction>(paras[i].getValue()))
-          new_insts.insert(Itemp);
-      }
-    };
-
-    // Find any allocations, phis or stores in the current BB to added to the
-    // list Value *val_inst;
-    for (inst_iterator it = inst_bb_begin(beg_BB); it != q_iterator_; ++it) {
-      if ((dyn_cast<AllocaInst>(&*it)))
-        new_insts.insert(&*it);
-      else if ((dyn_cast<StoreInst>(&*it)))
-        new_insts.insert(&*it);
-      else if ((dyn_cast<PHINode>(&*it)))
-        new_insts.insert(&*it);
+  // If we are at the beginning of the function, we want to insert before the
+  // operands and parameters for the  current quantum gate. This helps keep the
+  // IR clean and readable.
+  if (isBegin()) {
+    // So, starting from the current location, we iterate backwards through the
+    // instructions, until we hit the beginning of the iterator, or we hit an
+    // instruction that we cannot insert before, like Alloca, PHINodes and Store
+    // instructions.
+    bool Done = false;
+    Instruction *StartInst = &*beg_BB->begin();
+    while (!Done && (q_iterator_ != StartInst)) {
+      Done = isa<PHINode>(q_iterator_) || isa<AllocaInst>(q_iterator_) ||
+             isa<StoreInst>(q_iterator_);
+      reverse_q_iterator_();
     }
-
-    // Now search for latest instruction
-    // current value of q_iterator_ should be a backstop such that we don't
-    // accidentally insert after it. If that ends up being the case, we need to
-    // insert everything before the current value of q_interator, i.e. we need
-    // to set is_after to false First, stash current value of q_iterator_
-
-    inst_iterator backstop = q_iterator_;
-    q_iterator_ = inst_bb_begin(beg_BB);
-    inst_iterator insert_bfr = q_iterator_;
-    II = &*q_iterator_;
-    bool inst_found = false;
-
-    while (q_iterator_ != backstop) {
-
-      Instruction *IItemp = &*q_iterator_;
-      auto IIit = new_insts.find(IItemp);
-      if (IIit != new_insts.end()) {
-        insert_bfr = q_iterator_;
-        inst_found = true;
-      }
-      ++q_iterator_;
-    }
-    if (!(q_iterator_->isTerminator()))
-      ++insert_bfr;
-    if (inst_found)
-      II = &*insert_bfr;
-
+    Done = isa<PHINode>(q_iterator_) || isa<AllocaInst>(q_iterator_) ||
+           isa<StoreInst>(q_iterator_);
+    if (Done)
+      advance_q_iterator_();
   } else {
+    // If we are inserting into the middle of the iterator, we go backwards to
+    // the previous operation then move the instruction pointer forward once.
     operator--();
     if (!(q_iterator_->isTerminator()))
-      ++q_iterator_;
-    II = &*q_iterator_;
+      advance_q_iterator_();
   }
 
+  II = q_iterator_;
   bool insert_after = false;
-  // Checks for consistency when adding a new instruction or parameters for
-  // new instructions.
-  for (unsigned i = 0; i < qbits.size(); i++) {
-    if (!qbits[i].getRegister())
-      continue;
-    // Check that the qubit register instruction actually comes before the
-    // instruction we are inserting after.  If it isn't, we update the
-    // instruction we are adding after to be the register allocation.
-    if (Instruction *I = dyn_cast<Instruction>(qbits[i].getRegister())) {
-      if (I->getParent() == II->getParent() && II->comesBefore(I)) {
-        II = I;
-        insert_after = true;
-      }
-    }
-
-    if (!qbits[i].getIndex())
-      continue;
-
-    // Check that the qubit index instruction actually comes before the
-    // instruction we are inserting after.  If it isn't, we update the
-    // instruction we are adding after to be the register allocation.
-    if (Instruction *I = dyn_cast<Instruction>(qbits[i].getIndex())) {
-      if (I->getParent() == II->getParent() && II->comesBefore(I)) {
-        II = I;
-        insert_after = true;
-      }
-    }
-  }
-
-  // Check that the parameter instruction actually comes before the
-  // instruction we are inserting after.  If it isn't, we update the
-  // instruction we are adding after to be the register allocation.
-  for (unsigned i = 0; i < paras.size(); i++) {
-    if (!paras[i].getValue())
-      continue;
-    if (Instruction *I = dyn_cast<Instruction>(paras[i].getValue())) {
-      if (I->getParent() == II->getParent() && II->comesBefore(I)) {
-        II = I;
-        insert_after = true;
-      }
-    }
-  }
 
   // Get the Function for identifier
   Module *M = II->getModule();
@@ -835,7 +802,10 @@ bool QIter::insertGate(int identifier, std::vector<QbitRef> &qbits,
   getGateList(identifier, "qubit_list", operands);
   getGateList(identifier, "parametric_list", operands);
 
+  // Handle the arguments to the call, and insert them before the
+  // current instruction pointer as appropriate.
   for (int cnt = 0; cnt != num_tot; cnt++) {
+    bool UpdateAfter = false;
     unsigned int pos = 0;
     while (operands[pos] != cnt)
       pos++;
@@ -843,6 +813,7 @@ bool QIter::insertGate(int identifier, std::vector<QbitRef> &qbits,
       bool isPtrTy = FTy->getParamType(cnt)->isPointerTy();
       arg_list[cnt] = add_qbit_call(II, qbits[pos], insert_after, isPtrTy);
     } else {
+      bool UpdateAfter = false;
       arg_list[cnt] = add_para_call(II, paras[pos - num_q], insert_after);
     }
   }
@@ -857,39 +828,36 @@ bool QIter::insertGate(int identifier, std::vector<QbitRef> &qbits,
     }
   }
 
-  // Check that each argument instruction actually comes before the
-  // instruction we are inserting after.  If it isn't, we update the
-  // instruction we are adding after to be the register allocation.
-  for (unsigned i = 0; i < arg_list.size(); i++) {
-    if (Instruction *I = dyn_cast<Instruction>(arg_list[i])) {
-      if (I->getParent() == II->getParent() && II->comesBefore(I)) {
-        II = I;
-        insert_after = true;
-      }
-    }
-  }
-
-  // Create CallInst and insert after II (or before in edge case)
+  // Create CallInst and insert before II in most cases.
   CallInst *NewCall = CallInst::Create(FTy, NewGate, arg_list, "");
   if (insert_after)
     NewCall->insertAfter(II);
   else
     NewCall->insertBefore(II);
 
-  // update q_iterator_ to point at new call inst
-
+  // update q_iterator_ to point at new call instruction. We also
+  // update the beginning operation if the iterator previously pointed
+  // at the beginning of the block of quatnum operations.
   if (update) {
     q_iterator_ = inst_bb_begin(beg_BB);
-    while (!is_qgate() && !isEnd())
-      ++q_iterator_;
+    BBBegin = q_iterator_;
+    while (!is_qgate() && !isEnd()) {
+      advance_q_iterator_();
+    }
+    this->set_q_BEGIN(q_iterator_);
   } else
     operator--();
 
-  // update range map
-  // if successful, update range map
-  if (update) {
-    this->q_BEGIN() = q_iterator_;
-  }
+  // If specified, we fix the ordering of the arguments to the quantum calls
+  // here. We have been keeping track of when arguments already exist in the
+  // block. As we have always inserted before the iterator, and not cared about
+  // the order we may need to move the operations in the block at this time so
+  // that each argument is defined at the correct time. We fix the ordering at
+  // the end of insertion to prevent repeated iteration when determining the
+  // current order of the block. The updateGateDependencies function has more
+  // details for the implementation.
+  if (FixOrder)
+    updateGateDependencies();
 
   return true;
 }
@@ -969,17 +937,17 @@ bool QIter::changeGate(int identifier) {
   };
 
   CallInst::Create(FTy, NewGate, arg_list, "", dyn_cast<Instruction>(CI));
-  --q_iterator_;
+  reverse_q_iterator_();
   CI->eraseFromParent();
 
   if (!is_qgate()) {
-    std::string ErrMsg = "Gate was losts when changing gate.\n";
+    std::string ErrMsg = "Gate was lost when changing gate.\n";
     displayErrorAndExit("QuantumIterator", ErrMsg);
   }
 
   // update range map
   if (update) {
-    this->q_BEGIN() = q_iterator_;
+    this->set_q_BEGIN(q_iterator_);
   }
 
   return true;
@@ -996,7 +964,10 @@ bool QIter::is_qgate() {
     return false;
   }
 
-  Instruction *temp = &*q_iterator_;
+  if (!q_iterator_)
+    return false;
+
+  Instruction *temp = q_iterator_;
   if (CallInst *CI = dyn_cast<CallInst>(temp)) {
 
     auto *CF = CI->getCalledFunction();
@@ -1027,14 +998,14 @@ QbitRef &QIter::qubit_backtrace_helper(unsigned i) {
   }
 
   // get the CallInst
-  Instruction *temp = &*q_iterator_;
+  Instruction *temp = q_iterator_;
 
   out = qubit_backtrace_helper(temp, qbit_ops[i]);
 
   return out;
 }
 
-QbitRef QIter::qubit_backtrace_helper(Instruction *I, unsigned i) {
+QbitRef QIter::qubit_backtrace_helper(Instruction *I, unsigned i, bool warn) {
 
   QbitRef out;
 
@@ -1044,6 +1015,9 @@ QbitRef QIter::qubit_backtrace_helper(Instruction *I, unsigned i) {
 
     // if it is a constant int, this is a QID
     if (ConstantInt *CI = dyn_cast<ConstantInt>(q_arg)) {
+      if (CI->getBitWidth() != 16) {
+        return out;
+      }
       out.reg_ptr_ = nullptr;
       out.index_ptr_ = q_arg;
       out.convertToQID();
@@ -1083,7 +1057,7 @@ QbitRef QIter::qubit_backtrace_helper(Instruction *I, unsigned i) {
         if (!out.isNull())
           out.shiftIndexBy(CB->getArgOperand(1));
       }
-    } else {
+    } else if (warn) {
       errs() << "QIter Warning: qubit argument " << i
              << " does not represent a known qubit type:" << (*q_arg) << "\n";
       out.setRegister(q_arg);
@@ -1093,7 +1067,7 @@ QbitRef QIter::qubit_backtrace_helper(Instruction *I, unsigned i) {
     std::string ErrMsg = "Current instruction is not a CallInst.\n";
     displayErrorAndExit("QuantumIterator", ErrMsg);
   }
-  if (out.isNull())
+  if (warn && out.isNull())
     errs() << "QIter Warning: qubit backtrace didn't result in a proper "
               "QbitRef.\n";
   return out;
@@ -1120,7 +1094,8 @@ ParaRef &QIter::parametric_backtrace_helper(unsigned i) {
   return out;
 }
 
-ParaRef QIter::parametric_backtrace_helper(Instruction *I, unsigned i) {
+ParaRef QIter::parametric_backtrace_helper(Instruction *I, unsigned i,
+                                           bool warn) {
 
   ParaRef out;
 
@@ -1136,7 +1111,7 @@ ParaRef QIter::parametric_backtrace_helper(Instruction *I, unsigned i) {
       out.setValue(para_arg);
     else if (out.is_cbit_ref(para_arg))
       out.setValue(para_arg);
-    else {
+    else if (warn) {
       errs() << "QIter Error: Parameter argument is not a float, integer or "
                 "cbit reference.\n";
     }
@@ -1173,180 +1148,7 @@ Value *QIter::add_qbit_call(Instruction *instr, QbitRef &q, bool is_after,
       return nullptr;
   }
 
-  Value *out = nullptr;
-
-  // check if reg_ptr_ is an integer type itself, meaning no Instructions
-  // need to be inserted
-  if (IntegerType *ITy = dyn_cast<IntegerType>(q.reg_ptr_->getType()))
-    return q.reg_ptr_;
-
-  // check if reg_ptr_ is a pointer
-  else if (PointerType *PTy = dyn_cast<PointerType>(q.reg_ptr_->getType())) {
-
-    Value *load_ptr = q.reg_ptr_;
-    Type *load_ty = nullptr;
-    if (AllocaInst *AI = q.is_qbit_alloc()) {
-      load_ty = AI->getAllocatedType();
-    } else if (Argument *Arg = q.is_qbit_argument())
-      load_ty = Type::getInt16Ty(load_ptr->getContext());
-    else if (GlobalValue *GV = q.is_qbit_global()) {
-      load_ty = GV->getValueType();
-    } else if (CallBase *CB = q.is_qbit_fleq_reg()) {
-      load_ty = Type::getInt16Ty(load_ptr->getContext());
-    }
-
-    assert(load_ty != nullptr);
-
-    std::vector<Value *> gep_array;
-    if ((dyn_cast<ArrayType>(load_ty)))
-      gep_array.push_back(
-          ConstantInt::get(IntegerType::get(q.getContext(), 64), 0));
-
-    gep_array.push_back(q.index_ptr_);
-
-    // getAlignment
-    MaybeAlign maybe_align;
-    Align alignment;
-    if (AllocaInst *AI = q.is_qbit_alloc()) {
-      alignment = AI->getAlign();
-      maybe_align = MaybeAlign(alignment);
-    } else if (Argument *Arg = q.is_qbit_argument())
-      maybe_align = Arg->getParamAlign();
-    else if (GlobalValue *GV = q.is_qbit_global()) {
-      maybe_align = GV->getAliaseeObject()->getAlign();
-    }
-
-    bool flag = false;
-
-    // check if index is zero in which case we don't need a get element ptr
-    if ((dyn_cast<IntegerType>(load_ty))) {
-      if (ConstantInt *CInt = dyn_cast<ConstantInt>(q.index_ptr_)) {
-        if (CInt->getZExtValue() == 0)
-          flag = true;
-      }
-    }
-
-    // in the case of a fleq call, we need to use qlist.at to get correct
-    // qubit
-    if (CallBase *CB = q.is_qbit_fleq_reg()) {
-
-      auto IntrID = Intrinsic::fleq_qlist_at;
-      Function *qlist_at = Intrinsic::getDeclaration(CB->getModule(), IntrID);
-      CallInst *CallAt = CallInst::Create(qlist_at->getFunctionType(), qlist_at,
-                                          {q.reg_ptr_, q.index_ptr_});
-
-      if (is_after)
-        CallAt->insertAfter(instr);
-      else
-        CallAt->insertBefore(instr);
-
-      load_ptr = dyn_cast<Value>(CallAt);
-      flag = true;
-    }
-
-    if (flag) {
-      if (!isQbitPtr) {
-        LoadInst *LI = new LoadInst(load_ty, load_ptr, "", false,
-                                    maybe_align.valueOrOne());
-
-        if (is_after)
-          LI->insertAfter(instr);
-        else
-          LI->insertBefore(instr);
-        out = dyn_cast<Value>(LI);
-      } else
-        // Since we are passing qubits as reference, no need to insert a load
-        // instruction directly pass through the allocainst reference
-        out = load_ptr;
-
-    } else {
-      Instruction *MoveIdxTo = instr;
-
-      // If index_ptr_ is an instruction, try to add or move Instruction it
-      // represents before GEP
-      // Never move a Phi, landing pad or allocation
-      if (!isa<PHINode>(q.index_ptr_) && !isa<LandingPadInst>(q.index_ptr_) &&
-          !isa<AllocaInst>(q.index_ptr_)) {
-        if (Instruction *II = dyn_cast<Instruction>(q.index_ptr_)) {
-          for (Value *Op : II->operands()) {
-            if (Instruction *IO = dyn_cast<Instruction>(Op)) {
-              if ((IO->getParent() == MoveIdxTo->getParent() &&
-                   !IO->comesBefore(MoveIdxTo)) ||
-                  IO == MoveIdxTo) {
-                is_after = true;
-                MoveIdxTo = IO;
-              }
-            }
-          }
-
-          if (q.is_index_owned()) {
-            if (is_after)
-              II->insertAfter(MoveIdxTo);
-            else
-              II->insertBefore(MoveIdxTo);
-            q.set_index_owned(false);
-          } else {
-            if (is_after)
-              II->moveAfter(MoveIdxTo);
-            else
-              II->moveBefore(MoveIdxTo);
-          }
-
-          if ((II->getParent() == instr->getParent() &&
-               instr->comesBefore(II)) ||
-              II == instr) {
-            is_after = true;
-            instr = II;
-          }
-        }
-      }
-
-      GetElementPtrInst *GI = GetElementPtrInst::CreateInBounds(
-          load_ty, load_ptr, gep_array, "arrayidx");
-      if (!GI)
-        return nullptr;
-      load_ptr = dyn_cast<Value>(GI);
-      if (!load_ptr)
-        return nullptr;
-
-      // Insert Instructions
-      if (is_after) {
-        GI->insertAfter(instr);
-      } else {
-        GI->insertBefore(instr);
-      }
-      auto *Instr = dyn_cast<Instruction>(GI);
-      if (!Instr) {
-        return nullptr;
-      }
-
-      if (!isQbitPtr) {
-        auto *LP = dyn_cast<PointerType>(load_ptr->getType());
-        if (!LP) {
-          return nullptr;
-        }
-        auto *AP = dyn_cast<ArrayType>(load_ty);
-        if (!AP) {
-          return nullptr;
-        }
-        load_ty = AP->getArrayElementType();
-        LoadInst *LI = new LoadInst(load_ty, load_ptr, "", false,
-                                    maybe_align.valueOrOne());
-
-        LI->insertAfter(Instr);
-        out = dyn_cast<Value>(LI);
-      } else {
-        out = load_ptr;
-      }
-
-      MoveIdxTo = dyn_cast<Instruction>(GI);
-      if (!MoveIdxTo) {
-        return nullptr;
-      }
-    }
-  }
-
-  return out;
+  return q.createValue(instr, is_after, isQbitPtr, this);
 }
 
 bool QIter::remove_qbit_call(Value *q_val) {
@@ -1522,6 +1324,10 @@ Value *QIter::add_para_call(Instruction *inst, ParaRef &ang, bool is_after) {
       };
 
     } else {
+      // This instruction was already inserted into the IR, we may be inserting
+      // an instruction in the incorrect order, add it to the set of
+      // instructions to check for later.
+      InstsToCheck.push_back(inst);
       if (II->getFunction() != inst->getFunction()) {
         errs() << "QIter Error: cannot use instruction for ParaRef in this "
                   "Function!\n";

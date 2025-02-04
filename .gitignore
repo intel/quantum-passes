@@ -11,8 +11,16 @@ IntelQuantum/QuantumPasses/tests/.lit_test_times.txt
 IntelQuantum/QuantumPasses/tests/**/Output/
 **/Visualization/
 *.script
-
+*.tex
+IntelQuantum/QuantumPasses/tests/**/*_quantum.ll
+**/tests/FullHybridFlow/**/*.ll
 
 # QSDK & LLVM artifacts
 *.qo
 *.qs
+.lit_test_times.txt
+
+*.bak
+# virtual environment stuff
+.direnv/
+.envrc.local

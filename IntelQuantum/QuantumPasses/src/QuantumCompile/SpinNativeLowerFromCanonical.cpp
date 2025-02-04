@@ -44,15 +44,14 @@ void SpinNativeLowerFromCanonical::addDecomposedRz(
   NParas[2] = MidSlice;
   NParas[0].setValueResolved(FP_PI, TY);
   NParas[1].setValueResolved(angle * 0.5, TY);
-  Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas);
+  Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas, false);
   NParas[0].setValueResolved(FP_PI, TY);
   NParas[1].setValueResolved(0.0, TY);
-  Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas);
+  Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas, false);
 }
 
 bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
                                                       QuantumModule &QM) {
-
   Type *TY = Type::getDoubleTy(BB.getContext());
   bool Flag = true;
   std::string rz = "RZ";
@@ -91,12 +90,12 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
       // X Pi pulse
       NParas[0].setValueResolved(FP_PI, TY);
       NParas[1].setValueResolved(0.0, TY);
-      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas, false);
 
       // Y Pi/2 pulse
       NParas[0].setValueResolved(FP_PIby2, TY);
       NParas[1].setValueResolved(FP_PIby2, TY);
-      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas, false);
 
       // Remove canonical H Gate
       --Qit;
@@ -117,7 +116,7 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
       // X Pi pulse
       NParas[0].setValueResolved(FP_PI, TY);
       NParas[1].setValueResolved(0.0, TY);
-      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas, false);
 
       // Remove canonical X Gate
       --Qit;
@@ -138,7 +137,7 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
       // Y Pi pulse
       NParas[0].setValueResolved(FP_PI, TY);
       NParas[1].setValueResolved(FP_PIby2, TY);
-      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas, false);
 
       // Remove canonical Y Gate
       --Qit;
@@ -163,7 +162,7 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
 
         // Z Pi pulse
         NParas[0].setValueResolved(FP_PI, TY);
-        Flag = Flag && Qit.insertGate(kSpinRotZ, Qubits, NParas);
+        Flag = Flag && Qit.insertGate(kSpinRotZ, Qubits, NParas, false);
       }
 
       // Remove canonical Z Gate
@@ -189,7 +188,7 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
 
         // Z Pi/2 pulse
         NParas[0].setValueResolved(FP_PIby2, TY);
-        Flag = Flag && Qit.insertGate(kSpinRotZ, Qubits, NParas);
+        Flag = Flag && Qit.insertGate(kSpinRotZ, Qubits, NParas, false);
       }
 
       // Remove canonical S Gate
@@ -215,7 +214,7 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
 
         // Z 3Pi/2 pulse
         NParas[0].setValueResolved(FP_3PIby2, TY);
-        Flag = Flag && Qit.insertGate(kSpinRotZ, Qubits, NParas);
+        Flag = Flag && Qit.insertGate(kSpinRotZ, Qubits, NParas, false);
       }
       // Remove canonical SDAG Gate
       --Qit;
@@ -240,7 +239,7 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
 
         // Z Pi/4 pulse
         NParas[0].setValueResolved(FP_PIby4, TY);
-        Flag = Flag && Qit.insertGate(kSpinRotZ, Qubits, NParas);
+        Flag = Flag && Qit.insertGate(kSpinRotZ, Qubits, NParas, false);
       }
 
       // Remove canonical T Gate
@@ -266,7 +265,7 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
 
         // Z 7Pi/4 pulse
         NParas[0].setValueResolved(FP_7PIby4, TY);
-        Flag = Flag && Qit.insertGate(kSpinRotZ, Qubits, NParas);
+        Flag = Flag && Qit.insertGate(kSpinRotZ, Qubits, NParas, false);
       }
 
       // Remove canonical T Gate
@@ -288,7 +287,7 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
       // RotXY
       NParas[0] = Paras[0];
       NParas[1].setValueResolved(0.0, TY);
-      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas, false);
 
       // Remove canonical RX Gate
       --Qit;
@@ -309,7 +308,7 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
       // RotXY
       NParas[0] = Paras[0];
       NParas[1].setValueResolved(FP_PIby2, TY);
-      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas, false);
 
       // Remove canonical RY Gate
       --Qit;
@@ -333,16 +332,16 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
         NParas[2] = MidSlice;
         NParas[0].setValueResolved(FP_PI, TY);
         NParas[1] = Paras[0] * ParaRef(0.5);
-        Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas);
+        Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas, false);
         NParas[0].setValueResolved(FP_PI, TY);
         NParas[1].setValueResolved(0.0, TY);
-        Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas);
+        Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas, false);
       } else {
         // If no config is given or if Rz exists in the config, directly lower
         std::vector<aqcc::ParaRef> NParas(2);
         NParas[0] = Paras[0];
         NParas[1] = MidSlice;
-        Flag = Flag && Qit.insertGate(kSpinRotZ, Qubits, NParas);
+        Flag = Flag && Qit.insertGate(kSpinRotZ, Qubits, NParas, false);
       }
 
       // Remove canonical RZ Gate
@@ -369,15 +368,15 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
       // Y Pi/2 pulse
       NParas2[0].setValueResolved(FP_PIby2, TY);
       NParas2[1] = NParas2[0];
-      Flag = Flag && Qit.insertGate(kSpinRotXY, Target, NParas2);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Target, NParas2, false);
 
       // CPhase Pi
       NParas1[0].setValueResolved(FP_PI, TY);
-      Flag = Flag && Qit.insertGate(kSpinCPhase, Qubits, NParas1);
+      Flag = Flag && Qit.insertGate(kSpinCPhase, Qubits, NParas1, false);
 
       // Y -Pi/2 pulse
       NParas2[1].setValueResolved(FP_3PIby2, TY);
-      Flag = Flag && Qit.insertGate(kSpinRotXY, Target, NParas2);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Target, NParas2, false);
 
       // Remove canonical CX Gate
       --Qit;
@@ -391,13 +390,93 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
       break;
     }
 
+    case kISWAP: {
+      std::vector<aqcc::ParaRef> NParas1(2);
+      NParas1[1] = MidSlice;
+      std::vector<aqcc::ParaRef> NParas2(3);
+      NParas2[2] = MidSlice;
+
+      std::vector<aqcc::QbitRef> Target(1);
+      std::vector<aqcc::QbitRef> Control(1);
+      std::vector<aqcc::QbitRef> QubitsReverse(2);
+      QubitsReverse[0] = Qubits[1];
+      QubitsReverse[1] = Qubits[0];
+      Target[0] = Qubits[1];
+      Control[0] = Qubits[0];
+
+      // X Pi pulse
+      NParas2[0].setValueResolved(FP_PI, TY);
+      NParas2[1].setValueResolved(0.0, TY);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Target, NParas2, false);
+
+      // Y Pi/2 pulse
+      NParas2[0].setValueResolved(FP_PIby2, TY);
+      NParas2[1].setValueResolved(FP_PIby2, TY);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Target, NParas2, false);
+
+      // Y Pi/2 pulse
+      NParas2[0].setValueResolved(FP_PIby2, TY);
+      NParas2[1] = NParas2[0];
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Control, NParas2, false);
+
+      // CPhase Pi
+      NParas1[0].setValueResolved(FP_PI, TY);
+      Flag = Flag && Qit.insertGate(kSpinCPhase, QubitsReverse, NParas1, false);
+
+      // Y -Pi/2 pulse
+      NParas2[1].setValueResolved(FP_3PIby2, TY);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Control, NParas2, false);
+
+      // Y Pi/2 pulse
+      NParas2[0].setValueResolved(FP_PIby2, TY);
+      NParas2[1] = NParas2[0];
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Target, NParas2, false);
+
+      // CPhase Pi
+      NParas1[0].setValueResolved(FP_PI, TY);
+      Flag = Flag && Qit.insertGate(kSpinCPhase, Qubits, NParas1, false);
+
+      // Y -Pi/2 pulse
+      NParas2[1].setValueResolved(FP_3PIby2, TY);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Target, NParas2, false);
+
+      // X Pi pulse
+      NParas2[0].setValueResolved(FP_PI, TY);
+      NParas2[1].setValueResolved(0.0, TY);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Control, NParas2, false);
+
+      // Y Pi/2 pulse
+      NParas2[0].setValueResolved(FP_PIby2, TY);
+      NParas2[1].setValueResolved(FP_PIby2, TY);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Control, NParas2, false);
+
+      // Z Pi/2 pulse
+      NParas1[0].setValueResolved(FP_PIby2, TY);
+      Flag = Flag && Qit.insertGate(kSpinRotZ, Control, NParas1, false);
+
+      // Z Pi/2 pulse
+      NParas1[0].setValueResolved(FP_PIby2, TY);
+      Flag = Flag && Qit.insertGate(kSpinRotZ, Target, NParas1, false);
+
+      // Remove canonical iSWAP Gate
+      --Qit;
+      if (Qit.getIdentifier() == kISWAP && Flag)
+        Qit.removeGate();
+      else {
+        displayErrorAndExit("SpinNativeLowerFromCanonicalPass",
+                            "lost the canonical iSWAP gate.");
+      }
+
+      break;
+    }
+
     case kCZ: {
       std::vector<aqcc::ParaRef> NParas(2);
       NParas[1] = MidSlice;
 
       // CPhase Pi
       NParas[0].setValueResolved(FP_PI, TY);
-      Flag = Flag && Qit.insertGate(kSpinCPhase, Qubits, NParas);
+      Flag = Flag && Qit.insertGate(kSpinCPhase, Qubits, NParas, false);
 
       // Remove canonical CZ Gate
       --Qit;
@@ -417,7 +496,7 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
 
       // Swapalp Pi
       NParas[0].setValueResolved(FP_PI, TY);
-      Flag = Flag && Qit.insertGate(kSpinSwapalp, Qubits, NParas);
+      Flag = Flag && Qit.insertGate(kSpinSwapalp, Qubits, NParas, false);
 
       // Remove canonical SWAP Gate
       --Qit;
@@ -458,55 +537,55 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
       NParas1[0].setValueResolved(FP_PI, TY);
       NQubits2[0] = Qubits[0];
       NQubits2[1] = Qubits[2];
-      Flag = Flag && Qit.insertGate(kSpinCPhase, NQubits2, NParas1);
+      Flag = Flag && Qit.insertGate(kSpinCPhase, NQubits2, NParas1, false);
 
       // Ytarg Pi/2 pulse
       NParas2[0].setValueResolved(FP_PIby2, TY);
       NParas2[1].setValueResolved(FP_PIby2, TY);
       NQubits1[0] = Qubits[2];
-      Flag = Flag && Qit.insertGate(kSpinRotXY, NQubits1, NParas2);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, NQubits1, NParas2, false);
 
       // CPhase1targ 3Pi/2
       NParas1[0].setValueResolved(FP_3PIby2, TY);
       NQubits2[0] = Qubits[1];
       NQubits2[1] = Qubits[2];
-      Flag = Flag && Qit.insertGate(kSpinCPhase, NQubits2, NParas1);
+      Flag = Flag && Qit.insertGate(kSpinCPhase, NQubits2, NParas1, false);
 
       // Ytarg 3Pi/2 pulse
       NParas2[0].setValueResolved(FP_3PIby2, TY);
       NParas2[1].setValueResolved(FP_PIby2, TY);
       NQubits1[0] = Qubits[2];
-      Flag = Flag && Qit.insertGate(kSpinRotXY, NQubits1, NParas2);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, NQubits1, NParas2, false);
 
       // CPhase0targ Pi
       NParas1[0].setValueResolved(FP_PI, TY);
       NQubits2[0] = Qubits[0];
       NQubits2[1] = Qubits[2];
-      Flag = Flag && Qit.insertGate(kSpinCPhase, NQubits2, NParas1);
+      Flag = Flag && Qit.insertGate(kSpinCPhase, NQubits2, NParas1, false);
 
       // Ytarg Pi/2 pulse
       NParas2[0].setValueResolved(FP_PIby2, TY);
       NParas2[1].setValueResolved(FP_PIby2, TY);
       NQubits1[0] = Qubits[2];
-      Flag = Flag && Qit.insertGate(kSpinRotXY, NQubits1, NParas2);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, NQubits1, NParas2, false);
 
       // CPhase1targ Pi/2
       NParas1[0].setValueResolved(FP_PIby2, TY);
       NQubits2[0] = Qubits[1];
       NQubits2[1] = Qubits[2];
-      Flag = Flag && Qit.insertGate(kSpinCPhase, NQubits2, NParas1);
+      Flag = Flag && Qit.insertGate(kSpinCPhase, NQubits2, NParas1, false);
 
       // CPhase01 Pi/2
       NParas1[0].setValueResolved(FP_PIby2, TY);
       NQubits2[0] = Qubits[0];
       NQubits2[1] = Qubits[1];
-      Flag = Flag && Qit.insertGate(kSpinCPhase, NQubits2, NParas1);
+      Flag = Flag && Qit.insertGate(kSpinCPhase, NQubits2, NParas1, false);
 
       // Ytarg 3Pi/2 pulse
       NParas2[0].setValueResolved(FP_3PIby2, TY);
       NParas2[1].setValueResolved(FP_PIby2, TY);
       NQubits1[0] = Qubits[2];
-      Flag = Flag && Qit.insertGate(kSpinRotXY, NQubits1, NParas2);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, NQubits1, NParas2, false);
 
       // Remove canonical Toffoli Gate
       --Qit;
@@ -529,15 +608,15 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
       // Y Pi/2 pulse
       NParas[0].setValueResolved(FP_PIby2, TY);
       NParas[1].setValueResolved(FP_PIby2, TY);
-      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas, false);
 
       // native prepz gate
-      Flag = Flag && Qit.insertGate(kSpinPrepZ, Qubits, slice_only);
+      Flag = Flag && Qit.insertGate(kSpinPrepZ, Qubits, slice_only, false);
 
       // Y -Pi/2 pulse
       NParas[0].setValueResolved(FP_PIby2, TY);
       NParas[1].setValueResolved(FP_3PIby2, TY);
-      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas, false);
 
       // Remove canonical PREPX Gate
       --Qit;
@@ -560,15 +639,15 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
       // X -Pi/2 pulse
       NParas[0].setValueResolved(FP_PIby2, TY);
       NParas[1].setValueResolved(FP_PI, TY);
-      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas, false);
 
       // native prepz gate
-      Flag = Flag && Qit.insertGate(kSpinPrepZ, Qubits, slice_only);
+      Flag = Flag && Qit.insertGate(kSpinPrepZ, Qubits, slice_only, false);
 
       // X Pi/2 pulse
       NParas[0].setValueResolved(FP_PIby2, TY);
       NParas[1].setValueResolved(0.0, TY);
-      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas, false);
 
       // Remove canonical PREPY Gate
       --Qit;
@@ -587,7 +666,7 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
       std::vector<aqcc::ParaRef> slice_only = {MidSlice};
 
       // native prepz gate
-      Flag = Flag && Qit.insertGate(kSpinPrepZ, Qubits, slice_only);
+      Flag = Flag && Qit.insertGate(kSpinPrepZ, Qubits, slice_only, false);
 
       // Remove canonical PREPZ Gate
       --Qit;
@@ -610,16 +689,16 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
       // Y Pi/2 pulse
       NParas[0].setValueResolved(FP_PIby2, TY);
       NParas[1].setValueResolved(FP_PIby2, TY);
-      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas, false);
 
       // native measz gate
       Paras.push_back(MidSlice);
-      Flag = Flag && Qit.insertGate(kSpinMeasZ, Qubits, Paras);
+      Flag = Flag && Qit.insertGate(kSpinMeasZ, Qubits, Paras, false);
 
       // Y -Pi/2 pulse
       NParas[0].setValueResolved(FP_PIby2, TY);
       NParas[1].setValueResolved(FP_3PIby2, TY);
-      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas, false);
 
       // Remove canonical MEASX Gate
       --Qit;
@@ -641,16 +720,16 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
       // X -Pi/2 pulse
       NParas[0].setValueResolved(FP_PIby2, TY);
       NParas[1].setValueResolved(FP_PI, TY);
-      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas, false);
 
       // native measz gate
       Paras.push_back(MidSlice);
-      Flag = Flag && Qit.insertGate(kSpinMeasZ, Qubits, Paras);
+      Flag = Flag && Qit.insertGate(kSpinMeasZ, Qubits, Paras, false);
 
       // X Pi/2 pulse
       NParas[0].setValueResolved(FP_PIby2, TY);
       NParas[1].setValueResolved(0.0, TY);
-      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas, false);
 
       // Remove canonical MEASY Gate
       --Qit;
@@ -669,7 +748,7 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
 
       // native measz gate
       Paras.push_back(MidSlice);
-      Flag = Flag && Qit.insertGate(kSpinMeasZ, Qubits, Paras);
+      Flag = Flag && Qit.insertGate(kSpinMeasZ, Qubits, Paras, false);
 
       // Remove canonical MEASZ Gate
       --Qit;
@@ -690,7 +769,7 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
 
       // CPhase Pi
       NParas[0] = Paras[0];
-      Flag = Flag && Qit.insertGate(kSpinCPhase, Qubits, NParas);
+      Flag = Flag && Qit.insertGate(kSpinCPhase, Qubits, NParas, false);
 
       // Remove canonical CPhase Gate
       --Qit;
@@ -710,7 +789,7 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
       // RotXY
       NParas[0] = Paras[0];
       NParas[1] = Paras[1];
-      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas);
+      Flag = Flag && Qit.insertGate(kSpinRotXY, Qubits, NParas, false);
 
       // Remove canonical RXY Gate
       --Qit;
@@ -729,7 +808,7 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
 
       // Swapalp Pi
       NParas[0] = Paras[0];
-      Flag = Flag && Qit.insertGate(kSpinSwapalp, Qubits, NParas);
+      Flag = Flag && Qit.insertGate(kSpinSwapalp, Qubits, NParas, false);
 
       // Remove canonical SwapA Gate
       --Qit;
@@ -750,6 +829,7 @@ bool SpinNativeLowerFromCanonical::lowerFromCanonical(BasicBlock &BB,
     }
 
   } while (!Qit.isBegin());
+  Qit.updateGateDependencies();
   return false;
 
 } // lowerFromCanonical
@@ -875,8 +955,8 @@ INITIALIZE_PASS_END(SpinNativeLowerFromCanonicalLegacyPass,
 
 PreservedAnalyses
 SpinNativeLowerFromCanonicalPass::run(Module &M, ModuleAnalysisManager &MAM) {
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
-  QuantumModule *QM = QMP.QM;
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
+  QuantumModule *QM = &*QMP.QM;
   for (auto &QK : *QM) {
     for (auto &QBB : QK) {
       SN.lowerFromCanonical(QBB, *QM);

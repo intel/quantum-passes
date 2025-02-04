@@ -128,7 +128,13 @@ static void backfillQIDToQbitLocal(BasicBlock &QBB, QuantumModule &QM) {
     }
 
     // get MM basic block terminator to insert before
-    Instruction *I = &*(QBB.getUniqueSuccessor()->begin());
+    BasicBlock *Successor = QBB.getUniqueSuccessor();
+    QBBIter QIt(*Successor);
+    while (!QIt.isEnd()) {
+      Successor = Successor->getUniqueSuccessor();
+      QIt = QBBIter(*Successor);
+    }
+    Instruction *I = &*(Successor->begin());
 
     // create the StoreInst
 
@@ -204,7 +210,7 @@ INITIALIZE_PASS_END(ConvertQbitToQIDLegacyPass, "convert-qbit-to-qid",
 
 PreservedAnalyses ConvertQbitToQIDPass::run(Module &M,
                                             ModuleAnalysisManager &MAM) {
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
   convertQbitToQID(M, *QMP.QM);
 
   return PreservedAnalyses::all();

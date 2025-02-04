@@ -14,8 +14,10 @@
 
 #include <algorithm>
 
-PrinterInterface::PrinterInterface(proofreader::ProofReader *read) {
+PrinterInterface::PrinterInterface(proofreader::ProofReader *read,
+                                   std::string pos) {
   this->reader = read;
+  comp_pos = pos;
 }
 
 void PrinterInterface::addOptions(std::string print_option) {
@@ -35,11 +37,11 @@ void PrinterInterface::run() {
       PrinterASCII printer_ascii(this->reader);
       printer_ascii.render();
     } else if (option == "tex") {
-      PrinterLaTex printer_latex(this->reader);
+      PrinterLaTex printer_latex(this->reader, comp_pos);
       printer_latex.setOutputDirectory(this->output_dir);
       printer_latex.render();
     } else if (option == "json") {
-      PrinterJson printer_json(this->reader);
+      PrinterJson printer_json(this->reader, comp_pos);
       printer_json.setOutputDirectory(this->output_dir);
       printer_json.render();
     }

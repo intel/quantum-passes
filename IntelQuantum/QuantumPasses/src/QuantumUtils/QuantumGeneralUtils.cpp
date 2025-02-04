@@ -17,15 +17,25 @@
 #include "llvm/Demangle/Demangle.h"
 #include "llvm/IR/Intrinsics.h"
 
+#include <map>
+
 namespace llvm {
 namespace aqcc {
 
 // create a new quantum kernel in M with name and returns the function ptr
 Function *createEmptyQKernel(std::string name, Module &M, BasicBlock *BB,
                              bool mangle) {
+  SmallVector<Type *> TempType;
+  return createEmptyQKernel(name, M, TempType, BB, mangle);
+}
+
+// create a new quantum kernel in M with name and returns the function ptr
+Function *createEmptyQKernel(std::string name, Module &M,
+                             SmallVector<Type *> &TypeArray, BasicBlock *BB,
+                             bool mangle) {
 
   FunctionType *VdTy =
-      FunctionType::get(Type::getVoidTy(M.getContext()), false);
+      FunctionType::get(Type::getVoidTy(M.getContext()), TypeArray, false);
   std::string mangle_name;
   if (mangle) {
     mangle_name = "_Z";
@@ -123,9 +133,11 @@ Value *createNewQSDArray(Module &M, StringRef name, unsigned num) {
   return out;
 }
 
-bool verifyLinearChain(BasicBlock *BB, std::set<BasicBlock *> &visited,
-                       std::vector<QBBIter>::reverse_iterator qbb_iter,
-                       std::vector<QBBIter>::reverse_iterator qbb_end) {
+bool verifyLinearChain(
+    BasicBlock *BB, std::set<BasicBlock *> &visited,
+    std::map<std::pair<BasicBlock *, Instruction *>, bool> &Cache,
+    std::vector<QBBIter>::reverse_iterator qbb_iter,
+    std::vector<QBBIter>::reverse_iterator qbb_end) {
   if (qbb_iter == qbb_end)
     return true;
 
@@ -144,10 +156,19 @@ bool verifyLinearChain(BasicBlock *BB, std::set<BasicBlock *> &visited,
   if ((succ == end))
     return false;
 
+  std::map<std::pair<BasicBlock *, Instruction *>, bool>::iterator It;
   for (; succ != end; ++succ) {
     std::set<BasicBlock *> br_visited = visited;
-    if (!verifyLinearChain(*succ, br_visited, qbb_iter, qbb_end))
+    It = Cache.find(std::make_pair(*succ, &**qbb_iter));
+    if (It != Cache.end()) {
+      return It->second;
+    }
+    if (!verifyLinearChain(*succ, br_visited, Cache, qbb_iter, qbb_end)) {
+      Cache.insert(std::make_pair(std::make_pair(*succ, &**qbb_iter), false));
       return false;
+    } else {
+      Cache.insert(std::make_pair(std::make_pair(*succ, &**qbb_iter), true));
+    }
   }
 
   return true;
@@ -201,7 +222,8 @@ int validateQuantumKernel(Function &F, std::vector<QBBIter> &F_gates) {
   // for a dfs, every branch passes through every BB containing gates
   // in (reverse) order of F_gates
   std::set<BasicBlock *> visited;
-  if (!verifyLinearChain(&F.getEntryBlock(), visited, F_gates.rbegin(),
+  std::map<std::pair<BasicBlock *, Instruction *>, bool> Cache;
+  if (!verifyLinearChain(&F.getEntryBlock(), visited, Cache, F_gates.rbegin(),
                          F_gates.rend())) {
     F_gates.clear();
     return -2;
@@ -627,21 +649,24 @@ bool addTrivialQubitPlacement(QuantumModule &QM) {
   return out;
 } // end of addTrivialQubitPlacement
 
-void setSingleSliceBeginAndEnd(BasicBlock &BB) {
+void setSingleSliceBeginAndEnd(BasicBlock &BB, bool CheckEnd) {
 
   aqcc::QBBIter Qit(BB);
   std::vector<aqcc::ParaRef> Paras;
   Qit.gotoBegin();
 
   if (!Qit.isEnd()) {
-
     Paras = Qit.getParametricOperands();
 
     // ASSUMPTION!: the last argument is always the slice ID
 
     // set begin slice
-    Paras.back() = aqcc::ParaRef(SLICE_BEG, Type::getInt32Ty(BB.getContext()));
-    Qit.setParametricOperands(Paras);
+    if (!CheckEnd ||
+        (Paras.size() > 0 && Paras.back().getType()->isIntegerTy(32))) {
+      Paras.back() =
+          aqcc::ParaRef(SLICE_BEG, Type::getInt32Ty(BB.getContext()));
+      Qit.setParametricOperands(Paras);
+    }
   }
 
   // set end slice
@@ -649,15 +674,18 @@ void setSingleSliceBeginAndEnd(BasicBlock &BB) {
   --Qit;
   if (!Qit.isBegin() && !Qit.isEnd()) {
     Paras = Qit.getParametricOperands();
-    Paras.back() = aqcc::ParaRef(SLICE_END, Type::getInt32Ty(BB.getContext()));
-    Qit.setParametricOperands(Paras);
+    if (!CheckEnd ||
+        (Paras.size() > 0 && Paras.back().getType()->isIntegerTy(32))) {
+      Paras.back() =
+          aqcc::ParaRef(SLICE_END, Type::getInt32Ty(BB.getContext()));
+      Qit.setParametricOperands(Paras);
+    }
   }
 }
 
 void setSerializedSlicing(BasicBlock &BB) {
 
   for (QBBIter Qit(BB); !Qit.isEnd(); ++Qit) {
-
     auto Paras = Qit.getParametricOperands();
 
     // ASSUMPTION!: the last argument is always the slice ID
@@ -720,6 +748,120 @@ std::unique_ptr<Module> separateQuantumFromClassicalModule(Module &M) {
 void displayErrorAndExit(std::string PassName, std::string ErrMsg) {
   errs() << "ERROR: Quantum SDK - " << PassName << " says: " << ErrMsg << "\n";
   report_fatal_error("Cannot process further. Exiting...\n");
+}
+
+void recursiveMoveBefore(Instruction *I, Instruction *Before, unsigned BaseNum,
+                         std::map<Instruction *, unsigned> &ValToNumber,
+                         std::map<Instruction *, unsigned> &MovedBefore) {
+  // If it's not an instruction, it's defined in scope (Arguments, Globals,
+  // constants).
+  if (!I)
+    return;
+
+  // If they don't have the same parent we cannot consider their relationship.
+  if (ValToNumber.find(I) == ValToNumber.end() ||
+      ValToNumber.find(Before) == ValToNumber.end())
+    return;
+
+  // If the location of the current value is greater than where we need to
+  // insert before, we may need to move this operation.
+  if (ValToNumber[I] > BaseNum) {
+    // Check to see if the value has been previously moved.
+    std::map<Instruction *, unsigned>::iterator It = MovedBefore.find(I);
+    bool Move = true;
+    // If it has, and it was moved before BaseNum, do not move it again.
+    if (It != MovedBefore.end()) {
+      if (It->second < BaseNum)
+        Move = false;
+    }
+
+    // If it should be moved, perform it here, and update the movement map.
+    if (Move) {
+      I->moveBefore(Before);
+      MovedBefore[I] = BaseNum;
+    }
+  }
+
+  // Now check all the operands of this instruction. We will check if the
+  // operand comes before each of it's uses in the function, and move it before
+  // the current instruction here after if it does not already come before
+  // the current operation.
+  for (unsigned OpIdx = 0, OpEnd = I->getNumOperands(); OpIdx < OpEnd;
+       OpIdx++) {
+    Value *V = I->getOperand(OpIdx);
+    recursiveMoveBefore(dyn_cast<Instruction>(V), I, BaseNum, ValToNumber,
+                        MovedBefore);
+  }
+}
+
+void updateGatesForBB(BasicBlock &BB, std::vector<Instruction *> &ValsToCheck) {
+  std::vector<BasicBlock *> BBs = {&BB};
+  updateGatesForBBs(BBs, ValsToCheck);
+}
+
+void updateGatesForBBs(std::vector<BasicBlock *> &BBs,
+                       std::vector<Instruction *> &ValsToCheck) {
+  if (ValsToCheck.size() < 1)
+    return;
+
+  // Create mappings from the instruction values to the original ordering in the
+  // block.
+  std::map<Instruction *, unsigned> ValToNumber;
+  unsigned Idx = 0;
+  std::set<BasicBlock *> BBSet;
+  for (BasicBlock *BB : BBs) {
+    BBSet.insert(BB);
+    for (Instruction &IRef : *BB) {
+      Instruction *I = &IRef;
+      ValToNumber[I] = Idx++;
+    }
+  }
+
+  // Create mappings from the instruction values to where they are moved in the
+  // block.
+  std::map<Instruction *, unsigned> MovedBefore;
+
+  // For each value, we need to see if it is used in an operation before it is
+  // instantiated in the function.
+  std::set<Instruction *> Checked;
+  for (Instruction *I : ValsToCheck) {
+    if (Checked.find(I) != Checked.end())
+      continue;
+
+    Checked.insert(I);
+    if (BBSet.find(I->getParent()) == BBSet.end())
+      continue;
+
+    // Find the earliest use in the function using the previously defined maps.
+    Instruction *Earliest = nullptr;
+    unsigned EarliestNum = -1;
+    for (User *U : I->users()) {
+      Instruction *UserI = dyn_cast<Instruction>(U);
+      if (!UserI)
+        continue;
+      if (ValToNumber.find(UserI) == ValToNumber.end())
+        continue;
+      unsigned CurrUserNum = ValToNumber[UserI];
+      if (!Earliest) {
+        Earliest = UserI;
+        EarliestNum = CurrUserNum;
+      } else if (EarliestNum > CurrUserNum) {
+        EarliestNum = CurrUserNum;
+        Earliest = UserI;
+      }
+    }
+
+    if (!Earliest)
+      continue;
+
+    // We need to check the instruction and its arguments to make sure they
+    // are instantiated before the Earliest Instruction's use.  It will never
+    // hurt the ordering to move an operation earlier than it currently is, as
+    // long as all the other operands to that function are moved earlier as
+    // well.
+    recursiveMoveBefore(I, Earliest, EarliestNum, ValToNumber, MovedBefore);
+  }
+  ValsToCheck.clear();
 }
 
 } // namespace aqcc

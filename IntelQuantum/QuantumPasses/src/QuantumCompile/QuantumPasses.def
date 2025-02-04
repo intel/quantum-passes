@@ -1,0 +1,47 @@
+//===- QuantumPasses.def --------------------------------------------====//
+//
+// Copyright (C) 2024 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
+//
+//===----------------------------------------------------------------------===//
+//
+// This file can be used as a registry for the transformation quantum passes
+// in the IntelQuantumPasses Library
+//
+//===----------------------------------------------------------------------===//
+
+// NOTE: NO INCLUDE GUARD DESIRED!
+
+#ifndef QUANTUM_MODULE_PASS
+#define QUANTUM_MODULE_PASS(NAME, CREATE_PASS)    
+#endif
+QUANTUM_MODULE_PASS("flatten-qk", FlattenQuantumKernelPass())
+QUANTUM_MODULE_PASS("insert-q-intrinsics", InsertQuantumIntrinsicsPass())
+QUANTUM_MODULE_PASS("insert-q-attrs", InsertQuantumArgumentAttributesPass())
+QUANTUM_MODULE_PASS("q-annotations-to-json", QuantumAnnotationsToJsonPass())
+QUANTUM_MODULE_PASS("validate-and-condition-qbb", ValidateAndConditionQBBPass())
+QUANTUM_MODULE_PASS("spin-native-annotate", QuantumSpinNativeToJsonPass())
+QUANTUM_MODULE_PASS("spin-lower-from-canonical", SpinNativeLowerFromCanonicalPass())
+QUANTUM_MODULE_PASS("simple-qbit-placement", SimpleQbitPlacementPass())
+QUANTUM_MODULE_PASS("q-init-placement", QuantumInitPlacementPass())
+QUANTUM_MODULE_PASS("decompose-toff", DecomposeToffoliPass())
+QUANTUM_MODULE_PASS("q-scheduler", SchedulerPass())
+QUANTUM_MODULE_PASS("convert-qbit-to-qid", ConvertQbitToQIDPass())
+QUANTUM_MODULE_PASS("spin-angles-in-range", SpinNativeAnglesInRangePass())
+QUANTUM_MODULE_PASS("spin-convert-to-imm", SpinNativeConvertToIMMPass())
+QUANTUM_MODULE_PASS("separate-and-replace-qbb", SeparateAndReplaceQBBPass())
+QUANTUM_MODULE_PASS("q-classical-module-split", QuantumClassicalModuleSplitPass())
+QUANTUM_MODULE_PASS("finalize-quantum-compilation", FinalizeQuantumCompilationPass())
+QUANTUM_MODULE_PASS("q-stats-print", QuantumKernelStatsPrintPass())
+QUANTUM_MODULE_PASS("print-circuit-qbb", PrintCircuitQBBPass())
+QUANTUM_MODULE_PASS("serialize-kernels", SerializeKernelsPass())
+
+#undef QUANTUM_MODULE_PASS
+
+#ifndef QUANTUM_LOOP_PASS
+#define QUANTUM_LOOP_PASS(NAME, CREATE_PASS)    
+#endif
+
+QUANTUM_LOOP_PASS("q-loop-unroll", QuantumLoopUnrollPass())
+
+#undef QUANTUM_LOOP_PASS
