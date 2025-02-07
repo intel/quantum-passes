@@ -1,0 +1,43 @@
+================================================================================
+                Intel(R) Quantum SDK - v1.1.1 Open Source Release Notes
+================================================================================
+Replaces repeated invocations of optimization for a single binary: quantum-optimization-driver.
+This new compilation strategy:
+* Reduces compilation time for large programs.
+
+* Provides additional warnings for potentially invalid blocks earlier in the
+compilation flow.
+
+* Reduces file system access.
+
+* Does not require any changes from the user.
+
+* Uses the LLVM Pass Manager to run optimization passes on programs rather
+than repeated calls to the opt tool.
+
+* Denotes a start and end stage for compilation using the --start-stage
+and --end-stage flags.
+
+* Quantum Kernels are unrolled iteratively until the compiler detects a valid Quantum Kernel,
+or the unrolling limit is exceeded, a default of 10.
+
+* More details about the use of this new program can be found in the documentation describing
+the compilation flow of the quantum compiler.
+
+Under the hood changes for manipulating quantum data for performance improvements.
+* The QIter class was refactored to significantly reduce extra iterations over
+Basic Blocks, increasing performance of insertion and deletion of quantum operations.
+
+* Deferred reorganization of instruction parameters, described in more detail in documentation.
+
+* Several passes adapted to take advantage of deferred reordering.
+
+Addition of two new flags to control compilation:
+* -z denotes the starting point for compilation.
+
+* -Z denotes the ending point for compilation
+
+Change in behavior of the -k flag:
+* No longer generates IR files at each stage of compilation. Only outputs
+  the final classical and quantum IR.
+

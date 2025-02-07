@@ -86,3 +86,14 @@ The benefit of this strategy is the ability to integrate Intel Quantum SDK optim
 
 ## Find Out More
 There is an in-depth explanation of each pass and writing passes in the `docs` directory.
+
+### Currently supported quantum driver script options
+The following are the options only available through the `-g` flag:
+
+    * ```-para_credit=<double>``` passes a parallelization credit value to the synthesis pass. The parallelization credit informs how circuit synthesis balances the outcome metrics of circuit gate count versus circuit depth, where higher values favor depth over gate count. Default value is `1`.  
+
+### End-to-end compilation flow tests
+```
+devops/dev_end_to_end_tests.sh
+```
+Run with ``-h`` to get help on the available command-line options.

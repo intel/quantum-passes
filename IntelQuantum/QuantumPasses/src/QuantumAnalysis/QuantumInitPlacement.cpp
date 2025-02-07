@@ -31,9 +31,9 @@ extern cl::list<std::string> quantum_debug;
 
 namespace llvm {
 
-static cl::opt<std::string> PlacementMethod("placement-method",
-                                            cl::desc("Placement method"),
-                                            cl::init("none"));
+cl::opt<std::string> PlacementMethod("placement-method",
+                                     cl::desc("Placement method"),
+                                     cl::init("none"));
 static cl::opt<size_t>
     num_iterations("iterations",
                    cl::desc("Number of iterations of local search"),
@@ -80,7 +80,7 @@ void QuantumInitPlacement::validateCustomSubset(CustomMap &custom_subset_,
                                "duplicate indices.\n";
           if (qid == 0)
             ErrMsg += "This may be due to an insufficient number of qubit "
-                      "identifers.\n If you wish some qubits to be mapped "
+                      "identifiers.\n If you wish some qubits to be mapped "
                       "by the compiler, use -1 as a placeholder.\n";
           displayErrorAndExit("Quantum Init Placement Pass", ErrMsg);
         } else
@@ -525,6 +525,7 @@ bool QuantumInitPlacement::run(Module &M, QuantumModule &QM) {
   // When needed, one can print information on the platform/machine using:
   LLVM_DEBUG(QM.MachinePrint());
 
+  QM.qubit_maps.clear();
   int status = placeProgToPhysQubits(QM);
 
   if (status != EXIT_SUCCESS) {
@@ -589,7 +590,7 @@ public:
 
 PreservedAnalyses QuantumInitPlacementPass::run(Module &M,
                                                 ModuleAnalysisManager &MAM) {
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
   QuantumInitPlacement QIP;
 
   QIP.run(M, *QMP.QM);

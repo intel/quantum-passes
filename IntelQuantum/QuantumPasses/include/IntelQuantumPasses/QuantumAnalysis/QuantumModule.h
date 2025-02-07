@@ -31,6 +31,7 @@
 
 #include "IntelQuantumPasses/QuantumAnalysis/QuantumGateIdentifiers.h"
 #include "IntelQuantumPasses/QuantumAnalysis/QuantumRefs.h"
+#include "IntelQuantumPasses/QuantumUtils/QuantumCircuit.h"
 #include "IntelQuantumPasses/QuantumUtils/QuantumMapProgToPhysQubits.hpp"
 
 // Files from the gitsubmodule config-json
@@ -59,13 +60,17 @@ public:
   LLVMContext C; // This is the Context only if base is owned by this class
   SMDiagnostic Err;
 
+  std::set<QuantumCircuitOp *> CreatedQCOs;
+  std::set<QuantumCircuit *> OwnedQuantumCircuits;
+
   /// the quantum gate metadata
   /// This also suffices as a list of the gates
-  using GateDataMap = std::map<StringRef, json::Object>;
+  using GateDataMap = std::map<std::string, json::Object>;
   GateDataMap q_gate_metadata;
 
   /// the list of quantum kernels. QuantumKernel object is defined below
   std::vector<QuantumKernel> q_kernel_list;
+  std::map<std::string, Function *> HumanNameToFunction;
   /// list of the simple QBBs (in the base module)
   std::map<Function *, BasicBlock *> QBB_link_map;
 
@@ -166,12 +171,20 @@ public:
 
   /// Dtor
   ~QuantumModule() {
-
     if (is_base_owned)
       delete base;
     else
       base = nullptr;
     delete q_split;
+    for (QuantumCircuitOp *QCO : CreatedQCOs) {
+      if (QCO->getParentCircuit() == nullptr) {
+        delete QCO;
+      }
+    }
+    while (OwnedQuantumCircuits.size() > 0) {
+      QuantumCircuit *QC = *OwnedQuantumCircuits.begin();
+      delete QC;
+    }
   }
 
   /// Get the classical module.
@@ -285,7 +298,7 @@ public:
 
   int updateShortestPathToAvailable1QubitGate(
       int id, unsigned q_start, std::vector<unsigned> &qids,
-      std::vector<unsigned> excluded = {}) {
+      const std::vector<unsigned> &excluded = {}) {
     return machine.ShortestPathToAvailable1QubitGate(
         getPlatformNameFromGateIdentifier(id), q_start, qids, excluded);
   }
@@ -352,9 +365,9 @@ private:
 
 struct QuantumModuleProxy {
 public:
-  QuantumModule *QM;
+  static std::shared_ptr<QuantumModule> QM;
 
-  QuantumModuleProxy(QuantumModule *ExternalQM) { QM = ExternalQM; }
+  QuantumModuleProxy() {};
 };
 
 /// Cheap wrapper for quantum kernel as a function, mostly for use of iterating
@@ -404,9 +417,9 @@ public:
     }
   };
 
-  iterator begin() { return iterator(first_, qk_); }
+  iterator begin();
   iterator end() { return iterator(qk_->end(), qk_); }
-  iterator begin() const { return iterator(first_, qk_); }
+  iterator begin() const;
   iterator end() const { return iterator(qk_->end(), qk_); }
 
   /// The following is functionality to extract the strongly-connected
@@ -447,7 +460,7 @@ private:
 
 public:
   QuantumGates() = delete;
-  QuantumGates(Module &M, std::map<StringRef, json::Object> *gate_ptr)
+  QuantumGates(Module &M, std::map<std::string, json::Object> *gate_ptr)
       : M_ptr(&M), q_gate_md_ptr(gate_ptr) {}
   QuantumGates(QuantumModule &QM)
       : M_ptr(QM.base), q_gate_md_ptr(&QM.q_gate_metadata){};

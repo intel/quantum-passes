@@ -587,7 +587,6 @@ public:
       }
       Visitor.FunctionReturnQExpr = false;
     }
-
     FunctionDecls.clear();
 
     return true;

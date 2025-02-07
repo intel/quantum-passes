@@ -169,8 +169,8 @@ TEST_F(QuantumIteratorTest, CtorTest) {
 
   QIter qit1(*F1);
 
-  inst_iterator iter = inst_begin(*F1);
-  QIter qit2(*F1, iter);
+  Instruction *Begin = &*inst_begin(*F1);
+  QIter qit2(*F1, Begin);
 
   EXPECT_TRUE(qit1 == qit2);
 
@@ -179,16 +179,16 @@ TEST_F(QuantumIteratorTest, CtorTest) {
   EXPECT_TRUE(qit1 != qit3);
 
   QIter qit4(*F3);
-  iter = inst_end(*F3);
+  inst_iterator iter = inst_end(*F3);
   --iter; // should be terminator
 
-  EXPECT_TRUE(qit4.getGateInstIterator() == iter);
+  EXPECT_TRUE(qit4.getGateInstIterator() == &*iter);
 
   QIter qit5(*F4);
   iter = inst_end(*F4);
   --iter; // should be terminator
 
-  EXPECT_TRUE(qit5.getGateInstIterator() == iter);
+  EXPECT_TRUE(qit5.getGateInstIterator() == &*iter);
   ParaRef::clearValueOwnedMap();
   QbitRef::clearIndexOwnedMap();
 }
@@ -217,8 +217,8 @@ TEST_F(QuantumBBIteratorTest, CtorTest) {
 
   QBBIter qit1((F1->getEntryBlock()));
 
-  inst_iterator iter = inst_bb_begin(&(F1->getEntryBlock()));
-  QBBIter qit2((F1->getEntryBlock()), iter);
+  Instruction *InstBegin = inst_bb_begin(&(F1->getEntryBlock()));
+  QBBIter qit2((F1->getEntryBlock()), InstBegin);
 
   EXPECT_TRUE(qit1 == qit2);
 
@@ -227,16 +227,14 @@ TEST_F(QuantumBBIteratorTest, CtorTest) {
   EXPECT_TRUE(qit1 != qit3);
 
   QBBIter qit4((F3->getEntryBlock()));
-  iter = inst_bb_end(&(F3->getEntryBlock()));
-  --iter; // should be terminator
+  Instruction *InstEnd = inst_bb_end(&(F3->getEntryBlock()));
 
-  EXPECT_TRUE(qit4.getGateInstIterator() == iter);
+  EXPECT_TRUE(qit4.getGateInstIterator() == InstEnd);
 
   QBBIter qit5((F4->getEntryBlock()));
-  iter = inst_bb_end(&(F4->getEntryBlock()));
-  --iter; // should be terminator
+  InstEnd = inst_bb_end(&(F4->getEntryBlock()));
 
-  EXPECT_TRUE(qit5.getGateInstIterator() == iter);
+  EXPECT_TRUE(qit5.getGateInstIterator() == InstEnd);
   ParaRef::clearValueOwnedMap();
   QbitRef::clearIndexOwnedMap();
 }
@@ -351,14 +349,14 @@ TEST_F(QuantumIteratorTest, MoversTest) {
       EXPECT_EQ(cnt10, 0);
 
       // translate via qubit list
-      inst_iterator iter = inst_begin(F);
+      Instruction *iter = &*inst_begin(F);
       std::vector<QbitRef> qlist1(1);
       std::vector<QbitRef> qlist2(2);
 
       qlist1[0].setRegister(iter);
       qlist2[0].setRegister(iter);
-      ++iter;
-      ++iter;
+      iter = iter->getNextNode();
+      iter = iter->getNextNode();
       qlist2[1].setRegister(iter);
 
       unsigned cnt11 = 0;
@@ -508,14 +506,14 @@ TEST_F(QuantumBBIteratorTest, MoversTest) {
       EXPECT_EQ(cnt10, 0);
 
       // translate via qubit list
-      inst_iterator iter = inst_begin(F);
+      Instruction *iter = &*inst_begin(F);
       std::vector<QbitRef> qlist1(1);
       std::vector<QbitRef> qlist2(2);
 
       qlist1[0].setRegister(iter);
       qlist2[0].setRegister(iter);
-      ++iter;
-      ++iter;
+      iter = iter->getNextNode();
+      iter = iter->getNextNode();
       qlist2[1].setRegister(iter);
 
       unsigned cnt11 = 0;
@@ -582,9 +580,9 @@ TEST_F(QuantumIteratorTest, GetterTest) {
       */
 
       inst_iterator iter = inst_begin(F);
-      QbitRef qbit1(iter);
+      QbitRef qbit1(&*iter);
       ++iter;
-      QbitRef qbit2(iter);
+      QbitRef qbit2(&*iter);
       ParaRef angle;
       Type *FTy = Type::getDoubleTy(F.getContext());
       angle.setValueResolved(10.1, FTy);
@@ -692,9 +690,9 @@ TEST_F(QuantumBBIteratorTest, GetterTest) {
       */
 
       inst_iterator iter = inst_begin(F);
-      QbitRef qbit1(iter);
+      QbitRef qbit1(&*iter);
       ++iter;
-      QbitRef qbit2(iter);
+      QbitRef qbit2(&*iter);
       ParaRef angle;
       Type *FTy = Type::getDoubleTy(F.getContext());
       angle.setValueResolved(10.1, FTy);
@@ -928,9 +926,9 @@ TEST_F(QuantumIteratorTest, IRManipulationTest) {
       inst_iterator iter = inst_begin(F);
       ++iter;
       ++iter;
-      QbitRef qbit3(iter);
+      QbitRef qbit3(&*iter);
       ++iter;
-      QbitRef qbit40(iter);
+      QbitRef qbit40(&*iter);
       QbitRef qbit41 = qbit40;
       qbit41.setIndexResolved(1);
 
@@ -1499,9 +1497,9 @@ TEST_F(QuantumBBIteratorTest, IRManipulationTest) {
       inst_iterator iter = inst_begin(F);
       ++iter;
       ++iter;
-      QbitRef qbit3(iter);
+      QbitRef qbit3(&*iter);
       ++iter;
-      QbitRef qbit40(iter);
+      QbitRef qbit40(&*iter);
       QbitRef qbit41 = qbit40;
       qbit41.setIndexResolved(1);
 
@@ -2209,8 +2207,9 @@ TEST_F(QuantumIteratorTest, FullExampleTest) {
             ASSERT_TRUE(q_cur.removeGate());
             if (!q_cur.isBegin())
               --q_cur;
-            if (!rmv)
+            if (!rmv) {
               ASSERT_TRUE(q_mov.insertGate(kH, qbit_cur));
+            }
           }
 
         } while (q_cur.gotoNextGateInstance(kH));
@@ -2464,7 +2463,7 @@ TEST_F(QuantumIteratorTest, FullExampleTest) {
 
       // verify the result//////////////////////////////////////////
       inst_iterator iter(F);
-      QbitRef q0(iter);
+      QbitRef q0(&*iter);
       QbitRef q1 = q0;
       q1.setIndexResolved(1);
       QbitRef q2 = q0;
@@ -2941,7 +2940,7 @@ TEST_F(QuantumBBIteratorTest, FullExampleTest) {
 
       // verify the result//////////////////////////////////////////
       inst_iterator iter(F);
-      QbitRef q0(iter);
+      QbitRef q0(&*iter);
       QbitRef q1 = q0;
       q1.setIndexResolved(1);
       QbitRef q2 = q0;

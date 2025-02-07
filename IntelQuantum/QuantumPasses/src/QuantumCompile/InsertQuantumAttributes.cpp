@@ -71,6 +71,9 @@ static void FindArgumentToCalls(
       // argument being analyzed was used.  Then add it to the set of arguments
       // that this argument is connected to.
       unsigned ArgNo = CI->getArgOperandNo(&U);
+      if (CI->getCalledFunction()->isVarArg() &&
+          (ArgNo >= CI->getCalledFunction()->arg_size()))
+        continue;
       Argument *Arg = CI->getCalledFunction()->getArg(ArgNo);
       CallArgs->insert(Arg);
       It = ArgConnections.find(Arg);
@@ -347,6 +350,10 @@ static bool InsertQuantumAttributes(Module &M) {
         if (!CI)
           continue;
 
+        if (CI->isInlineAsm()) {
+          continue;
+        }
+
         // Intrinsics form the basis for our qexpr_val, qexpr_func_val,
         // qbit_ref, and cbit_ref.  Use the arguments and functions to mark it
         // as such here.
@@ -490,21 +497,11 @@ struct InsertQuantumArgumentAttributesLegacyPass : public ModulePass {
 }; // End of struct InsertQuantumIntrinsicsPass
 
 char InsertQuantumArgumentAttributesLegacyPass::ID = 0;
-static RegisterPass<InsertQuantumArgumentAttributesLegacyPass>
-    X("insert-q-arg-attrs", "InsertQuantumArgumentAttributesLegacyPass", false,
-      false);
 
 bool InsertQuantumArgumentAttributesLegacyPass::runOnModule(Module &M) {
   // We will use the call graph scc ordering to order the inlining
   return InsertQuantumAttributes(M);
 }
-
-INITIALIZE_PASS_BEGIN(InsertQuantumArgumentAttributesLegacyPass,
-                      "insert-q-arg-attrs",
-                      "InsertQuantumArgumentAttributesLegacyPass", false, false)
-INITIALIZE_PASS_END(InsertQuantumArgumentAttributesLegacyPass,
-                    "insert-q-arg-attrs",
-                    "InsertQuantumArgumentAttributesLegacyPass", false, false)
 
 PreservedAnalyses
 InsertQuantumArgumentAttributesPass::run(Module &M, ModuleAnalysisManager &AM) {

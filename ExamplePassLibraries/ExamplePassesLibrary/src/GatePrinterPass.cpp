@@ -40,7 +40,7 @@ static void printAllGates(BasicBlock &QBB) {
 
 PreservedAnalyses PrintAllGatesPass::run(Module &M,
                                          ModuleAnalysisManager &MAM) {
-  llvm::aqcc::QuantumModuleProxy QMP =
+  llvm::aqcc::QuantumModuleProxy &QMP =
       MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
   errs() << "Running Example Pass, using \"" << ExampleCommandLineOpt
          << "\" as the command line argument.\n";

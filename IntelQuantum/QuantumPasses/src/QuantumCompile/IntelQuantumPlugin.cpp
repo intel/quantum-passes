@@ -9,6 +9,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "IntelQuantumPasses/QuantumCompile/IntelQuantumPlugin.h"
 #include "IntelQuantumPasses/QuantumAnalysis/QuantumAnnotationsToJson.h"
 #include "IntelQuantumPasses/QuantumAnalysis/QuantumCompilerLinkage.h"
 #include "IntelQuantumPasses/QuantumAnalysis/QuantumInitPlacement.h"
@@ -25,6 +26,7 @@
 #include "IntelQuantumPasses/QuantumCompile/QuantumLoopUnrolling.h"
 #include "IntelQuantumPasses/QuantumCompile/Scheduler.h"
 #include "IntelQuantumPasses/QuantumCompile/SeparateAndReplaceQBB.h"
+#include "IntelQuantumPasses/QuantumCompile/Serialize.h"
 #include "IntelQuantumPasses/QuantumCompile/SimpleQbitPlacement.h"
 #include "IntelQuantumPasses/QuantumCompile/SpinNativeAnglesInRange.h"
 #include "IntelQuantumPasses/QuantumCompile/SpinNativeConvertToIMM.h"
@@ -45,96 +47,59 @@ cl::list<std::string> quantum_debug("quantum-debug",
 
 static void ErrorHandler(void *) { errs() << getBugReportMsg(); }
 
+#define QUANTUM_MODULE_PASS(NAME, CREATE_PASS)                                 \
+  if (Name == NAME) {                                                          \
+    MPM.addPass(CREATE_PASS);                                                  \
+    return true;                                                               \
+  }
+#define QUANTUM_LOOP_PASS(NAME, CREATE_PASS)                                   \
+  if (Name == NAME) {                                                          \
+    MPM.addPass(createModuleToFunctionPassAdaptor(                             \
+        createFunctionToLoopPassAdaptor(CREATE_PASS)));                        \
+    return true;                                                               \
+  }
+
+void registerIntelQuantumPassesCallBacks(PassBuilder &PB) {
+  PB.registerAnalysisRegistrationCallback([](ModuleAnalysisManager &MAM) {
+    MAM.registerPass([] { return QuantumCompilerLinkageAnalysis(); });
+  });
+  PB.registerPipelineParsingCallback(
+      [](StringRef Name, ModulePassManager &MPM,
+         ArrayRef<PassBuilder::PipelineElement>) {
+#include "QuantumPasses.def"
+        return false;
+      });
+
+#define QUANTUM_LOOP_PASS(NAME, CREATE_PASS)                                   \
+  if (Name == NAME) {                                                          \
+    FPM.addPass(createFunctionToLoopPassAdaptor(CREATE_PASS));                 \
+    return true;                                                               \
+  }
+
+  PB.registerPipelineParsingCallback(
+      [](StringRef Name, FunctionPassManager &FPM,
+         ArrayRef<PassBuilder::PipelineElement>) {
+#include "QuantumPasses.def"
+        return false;
+      });
+#define QUANTUM_LOOP_PASS(NAME, CREATE_PASS)                                   \
+  if (Name == NAME) {                                                          \
+    LPM.addPass(QuantumLoopUnrollPass(CREATE_PASS));                           \
+    return true;                                                               \
+  }
+  PB.registerPipelineParsingCallback(
+      [](StringRef Name, LoopPassManager &LPM,
+         ArrayRef<PassBuilder::PipelineElement>) {
+#include "QuantumPasses.def"
+        return false;
+      });
+}
+
 llvm::PassPluginLibraryInfo getIntelQuantumPassesPluginInfo() {
   llvm::setBugReportMsg(IntelMsg);
   sys::AddSignalHandler(ErrorHandler, nullptr);
-  return {
-      LLVM_PLUGIN_API_VERSION, "IntelQuantumPassesPlugin", LLVM_VERSION_STRING,
-      [](PassBuilder &PB) {
-        PB.registerAnalysisRegistrationCallback([](ModuleAnalysisManager &MAM) {
-          MAM.registerPass([] { return QuantumCompilerLinkageAnalysis(); });
-        });
-        PB.registerPipelineParsingCallback(
-            [](StringRef Name, ModulePassManager &MPM,
-               ArrayRef<PassBuilder::PipelineElement>) {
-              if (Name == "flatten-qk") {
-                MPM.addPass(FlattenQuantumKernelPass());
-                return true;
-              } else if (Name == "insert-q-intrinsics") {
-                MPM.addPass(InsertQuantumIntrinsicsPass());
-                return true;
-              } else if (Name == "insert-q-attrs") {
-                MPM.addPass(InsertQuantumArgumentAttributesPass());
-                return true;
-              } else if (Name == "q-annotations-to-json") {
-                MPM.addPass(QuantumAnnotationsToJsonPass());
-                return true;
-              } else if (Name == "validate-and-condition-qbb") {
-                MPM.addPass(ValidateAndConditionQBBPass());
-                return true;
-              } else if (Name == "spin-native-annotate") {
-                MPM.addPass(QuantumSpinNativeToJsonPass());
-                return true;
-              } else if (Name == "spin-lower-from-canonical") {
-                MPM.addPass(SpinNativeLowerFromCanonicalPass());
-                return true;
-              } else if (Name == "simple-qbit-placement") {
-                MPM.addPass(SimpleQbitPlacementPass());
-                return true;
-              } else if (Name == "q-init-placement") {
-                MPM.addPass(QuantumInitPlacementPass());
-                return true;
-              } else if (Name == "decompose-toff") {
-                MPM.addPass(DecomposeToffoliPass());
-                return true;
-              } else if (Name == "q-scheduler") {
-                MPM.addPass(SchedulerPass());
-                return true;
-              } else if (Name == "convert-qbit-to-qid") {
-                MPM.addPass(ConvertQbitToQIDPass());
-                return true;
-              } else if (Name == "spin-angles-in-range") {
-                MPM.addPass(SpinNativeAnglesInRangePass());
-                return true;
-              } else if (Name == "spin-convert-to-imm") {
-                MPM.addPass(SpinNativeConvertToIMMPass());
-                return true;
-              } else if (Name == "separate-and-replace-qbb") {
-                MPM.addPass(SeparateAndReplaceQBBPass());
-                return true;
-              } else if (Name == "q-classical-module-split") {
-                MPM.addPass(QuantumClassicalModuleSplitPass());
-                return true;
-              } else if (Name == "finalize-quantum-compilation") {
-                MPM.addPass(FinalizeQuantumCompilationPass());
-                return true;
-              } else if (Name == "q-stats-print") {
-                MPM.addPass(QuantumKernelStatsPrintPass());
-                return true;
-              } else if (Name == "print-circuit-qbb") {
-                MPM.addPass(PrintCircuitQBBPass());
-                return true;
-              } else if (Name == "q-loop-unroll") {
-                MPM.addPass(createModuleToFunctionPassAdaptor(
-                    createFunctionToLoopPassAdaptor(QuantumLoopUnrollPass(),
-                                                    false, false)));
-                return true;
-              }
-              return false;
-            });
-        PB.registerPipelineParsingCallback(
-            [](StringRef Name, FunctionPassManager &FPM,
-               ArrayRef<PassBuilder::PipelineElement>) { return false; });
-        PB.registerPipelineParsingCallback(
-            [](StringRef Name, LoopPassManager &LPM,
-               ArrayRef<PassBuilder::PipelineElement>) {
-              if (Name == "q-loop-unroll") {
-                LPM.addPass(QuantumLoopUnrollPass());
-                return true;
-              }
-              return false;
-            });
-      }};
+  return {LLVM_PLUGIN_API_VERSION, "IntelQuantumPassesPlugin",
+          LLVM_VERSION_STRING, registerIntelQuantumPassesCallBacks};
 }
 
 extern "C" LLVM_ATTRIBUTE_WEAK ::llvm::PassPluginLibraryInfo

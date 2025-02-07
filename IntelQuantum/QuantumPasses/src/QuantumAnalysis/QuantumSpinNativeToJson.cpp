@@ -180,9 +180,10 @@ std::vector<std::string>
     	\"parametric_list\" : [2, 3], \
     	\"control_qubit_list\" : [], \
     	\"local_basis_list\" : [0, 0], \
-    	\"identifier\" : " + std::to_string(kSpinSwapalp_IMM) + " \
+    	\"identifier\" : " + std::to_string(kSpinSwapalp_IMM) +
+                                                              " \
   	}",
-                                                              "{ \
+                                                          "{ \
     	\"matrix_real\" : \"NativeMeasZ_IMM\", \
    		\"matrix_imag\" : \"NativeMeasZ_IMM\", \
     	\"matrix_order\" : \"rm\", \
@@ -222,9 +223,10 @@ std::vector<std::string>
     	\"parametric_list\" : [1, 2], \
     	\"control_qubit_list\" : [], \
     	\"local_basis_list\" : [1], \
-    	\"identifier\" : " + std::to_string(kSpinRotZ_IMM_IDX) + " \
+    	\"identifier\" : " + std::to_string(kSpinRotZ_IMM_IDX) +
+                                                              " \
   	}",
-	                                                         "{ \
+                                                          "{ \
     	\"matrix_real\" : \"NativeRXY_IMM_IDX\", \
    		\"matrix_imag\" : \"NativeRXY_IMM_IDX\", \
     	\"matrix_order\" : \"rm\", \
@@ -236,9 +238,10 @@ std::vector<std::string>
     	\"parametric_list\" : [1, 2, 3], \
     	\"control_qubit_list\" : [], \
     	\"local_basis_list\" : [0], \
-    	\"identifier\" : " + std::to_string(kSpinRotXY_IMM_IDX) + " \
+    	\"identifier\" : " + std::to_string(kSpinRotXY_IMM_IDX) +
+                                                              " \
   	}",
-	                                                        "{ \
+                                                          "{ \
    		\"matrix_real\" : \"NativeCPhase_IMM_IDX\", \
    	    \"matrix_imag\" : \"NativeCPhase_IMM_IDX\", \
    		\"matrix_order\" : \"rm\", \
@@ -250,9 +253,10 @@ std::vector<std::string>
     	\"parametric_list\" : [2, 3], \
     	\"control_qubit_list\" : [0], \
     	\"local_basis_list\" : [1, 1], \
-    	\"identifier\" : " + std::to_string(kSpinCPhase_IMM_IDX) + " \
+    	\"identifier\" : " + std::to_string(kSpinCPhase_IMM_IDX) +
+                                                              " \
   	}",
-                                                           "{ \
+                                                          "{ \
     	\"matrix_real\" : \"NativeSwapalp_IMM_IDX\", \
    		\"matrix_imag\" : \"NativeSwapalp_IMM_IDX\", \
     	\"matrix_order\" : \"rm\", \
@@ -264,9 +268,10 @@ std::vector<std::string>
     	\"parametric_list\" : [2, 3], \
     	\"control_qubit_list\" : [], \
     	\"local_basis_list\" : [0, 0], \
-    	\"identifier\" : " + std::to_string(kSpinSwapalp_IMM_IDX) + " \
+    	\"identifier\" : " + std::to_string(kSpinSwapalp_IMM_IDX) +
+                                                              " \
   	}",
-	                                                                "{ \
+                                                          "{ \
     	\"matrix_real\" : \"NativeMeasZ_IMM_IDX\", \
    		\"matrix_imag\" : \"NativeMeasZ_IMM_IDX\", \
     	\"matrix_order\" : \"rm\", \
@@ -278,9 +283,9 @@ std::vector<std::string>
     	\"parametric_list\" : [1, 2], \
     	\"control_qubit_list\" : [], \
     	\"local_basis_list\" : [1], \
-    	\"identifier\" : " + std::to_string(kSpinMeasZ_IMM_IDX) + " \
-  	}"
-	  };
+    	\"identifier\" : " + std::to_string(kSpinMeasZ_IMM_IDX) +
+                                                              " \
+  	}"};
 
 const char Prefix[] = "quantum";
 
@@ -290,7 +295,7 @@ bool QuantumSpinNativeToJson::addSpinNativeFunctions(Module &M,
                                                      QuantumModule &QM) {
 
   // Get GateMetadata map
-  std::map<StringRef, json::Object> *qGateMetadata = &QM.q_gate_metadata;
+  std::map<std::string, json::Object> *qGateMetadata = &QM.q_gate_metadata;
 
   for (int id = kSpinBegin; id != kSpinIMM_IDXEnd; id++) {
 
@@ -356,10 +361,9 @@ INITIALIZE_PASS_END(QuantumSpinNativeToJsonWrapperPass,
 
 PreservedAnalyses QuantumSpinNativeToJsonPass::run(Module &M,
                                                    ModuleAnalysisManager &MAM) {
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
   QSNJ.addSpinNativeFunctions(M, *QMP.QM);
   updateCompilerLinkage(M, *QMP.QM);
-
   return PreservedAnalyses::all();
 }
 

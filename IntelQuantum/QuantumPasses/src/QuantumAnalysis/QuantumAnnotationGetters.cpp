@@ -13,11 +13,11 @@ namespace llvm {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-std::map<StringRef, json::Object>::iterator getGateDataPtr(int identifier) {
+std::map<std::string, json::Object>::iterator getGateDataPtr(int identifier) {
 
-  std::map<StringRef, json::Object> *qgatemetadata =
-      QuantumAnnotationsToJson::qGateMetadata;
-  std::map<StringRef, json::Object>::iterator out = qgatemetadata->begin();
+  std::map<std::string, json::Object> *qgatemetadata =
+      &(QBBIter::getQuantumModule()->q_gate_metadata);
+  std::map<std::string, json::Object>::iterator out = qgatemetadata->begin();
 
   bool found = false;
 
@@ -36,7 +36,7 @@ std::map<StringRef, json::Object>::iterator getGateDataPtr(int identifier) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-int getGateIdentifier(std::map<StringRef, json::Object>::iterator iter) {
+int getGateIdentifier(std::map<std::string, json::Object>::iterator iter) {
   if (json::Object *O = &(iter->second)) {
     if (std::optional<long int> gate_id = O->getInteger("identifier")) {
       return gate_id.value();
@@ -47,8 +47,8 @@ int getGateIdentifier(std::map<StringRef, json::Object>::iterator iter) {
 
 ////////////////////////////////////////////////////////////////////////////////
 bool isAGate(int identifier) {
-  std::map<StringRef, json::Object> *qgatemetadata =
-      QuantumAnnotationsToJson::qGateMetadata;
+  std::map<std::string, json::Object> *qgatemetadata =
+      &(QBBIter::getQuantumModule()->q_gate_metadata);
   return (getGateDataPtr(identifier) != qgatemetadata->end());
 }
 
@@ -65,7 +65,7 @@ StringRef getGateName(int identifier) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-bool isGateHermitian(std::map<StringRef, json::Object>::iterator iter) {
+bool isGateHermitian(std::map<std::string, json::Object>::iterator iter) {
 
   if (json::Object *O = &(iter->second)) {
 
@@ -82,7 +82,7 @@ bool isGateHermitian(int identifier) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-bool isGateUnitary(std::map<StringRef, json::Object>::iterator iter) {
+bool isGateUnitary(std::map<std::string, json::Object>::iterator iter) {
 
   if (json::Object *O = &(iter->second)) {
 
@@ -99,7 +99,7 @@ bool isGateUnitary(int identifier) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-bool isGateMutable(std::map<StringRef, json::Object>::iterator iter) {
+bool isGateMutable(std::map<std::string, json::Object>::iterator iter) {
 
   if (json::Object *O = &(iter->second)) {
 
@@ -118,7 +118,7 @@ bool isGateMutable(int identifier) {
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
-bool isGateUserPulse(std::map<StringRef, json::Object>::iterator iter) {
+bool isGateUserPulse(std::map<std::string, json::Object>::iterator iter) {
 
   if (json::Object *O = &(iter->second)) {
 
@@ -135,8 +135,8 @@ bool isGateUserPulse(int identifier) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-bool getGateList(std::map<StringRef, json::Object>::iterator iter,
-                 StringRef entry, std::vector<unsigned> &list) {
+bool getGateList(std::map<std::string, json::Object>::iterator iter,
+                 std::string entry, std::vector<unsigned> &list) {
 
   std::optional<long int> val;
 
@@ -158,13 +158,14 @@ bool getGateList(std::map<StringRef, json::Object>::iterator iter,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-bool getGateList(int identifier, StringRef entry, std::vector<unsigned> &list) {
+bool getGateList(int identifier, std::string entry,
+                 std::vector<unsigned> &list) {
   return getGateList(getGateDataPtr(identifier), entry, list);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-bool getGateList(std::map<StringRef, json::Object>::iterator iter,
-                 StringRef entry, std::vector<int> &list) {
+bool getGateList(std::map<std::string, json::Object>::iterator iter,
+                 std::string entry, std::vector<int> &list) {
 
   std::optional<long int> val;
 
@@ -187,14 +188,14 @@ bool getGateList(std::map<StringRef, json::Object>::iterator iter,
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-bool getGateList(int identifier, StringRef entry, std::vector<int> &list) {
+bool getGateList(int identifier, std::string entry, std::vector<int> &list) {
   return getGateList(getGateDataPtr(identifier), entry, list);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 unsigned
-getGateNumQubitOperands(std::map<StringRef, json::Object>::iterator iter) {
+getGateNumQubitOperands(std::map<std::string, json::Object>::iterator iter) {
 
   if (json::Object *O = &(iter->second)) {
 
@@ -211,8 +212,8 @@ unsigned getGateNumQubitOperands(int identifier) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-unsigned
-getGateNumParametricOperands(std::map<StringRef, json::Object>::iterator iter) {
+unsigned getGateNumParametricOperands(
+    std::map<std::string, json::Object>::iterator iter) {
 
   if (json::Object *O = &(iter->second)) {
 

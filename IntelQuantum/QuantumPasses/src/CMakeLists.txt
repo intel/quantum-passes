@@ -21,8 +21,10 @@ add_library(IntelQuantumIRPasses_obj OBJECT
   QuantumCompile/QuantumClassicalModuleSplit.cpp
   QuantumCompile/QuantumKernelStatsPrint.cpp
   QuantumCompile/QuantumLoopUnrolling.cpp
+  QuantumCompile/QuantumPassPipeline.cpp
   QuantumCompile/Scheduler.cpp
   QuantumCompile/SeparateAndReplaceQBB.cpp
+  QuantumCompile/Serialize.cpp
   QuantumCompile/SimpleQbitPlacement.cpp
   QuantumCompile/SpinNativeAnglesInRange.cpp
   QuantumCompile/SpinNativeConvertToIMM.cpp
@@ -41,6 +43,8 @@ add_library(IntelQuantumIRPasses_obj OBJECT
   QuantumAnalysis/QuantumRefs.cpp
   QuantumAnalysis/QuantumSpinNativeToJson.cpp
 
+  QuantumUtils/QuantumCircuit.cpp
+  QuantumUtils/QuantumCircuitOp.cpp
   QuantumUtils/QuantumFLEQUtils.cpp
   QuantumUtils/QuantumMapProgToPhysQubits.cpp
   QuantumUtils/QuantumGeneralUtils.cpp
@@ -49,6 +53,7 @@ add_library(IntelQuantumIRPasses_obj OBJECT
 
 set_property(TARGET IntelQuantumIRPasses_obj PROPERTY POSITION_INDEPENDENT_CODE 1)
 target_compile_definitions(IntelQuantumIRPasses_obj PRIVATE BUG_REPORT_URL=\"${BUG_REPORT_URL}\")
+target_compile_definitions(IntelQuantumIRPasses_obj PRIVATE PULSE_LIBRARY=\"${PULSE_LIBRARY}\")
 
 target_include_directories(IntelQuantumIRPasses_obj
     PRIVATE
@@ -58,6 +63,9 @@ target_include_directories(IntelQuantumIRPasses_obj
         ${config-json_SOURCE_DIR}/extern/nlohmann-json-lightweight/include/
 )
 
+target_link_libraries(IntelQuantumIRPasses_obj PRIVATE
+    platform-utils
+)
 
 add_library(IntelQuantumIRPasses_shared SHARED $<TARGET_OBJECTS:IntelQuantumIRPasses_obj>)
 add_library(IntelQuantumIRPasses_static STATIC $<TARGET_OBJECTS:IntelQuantumIRPasses_obj>)

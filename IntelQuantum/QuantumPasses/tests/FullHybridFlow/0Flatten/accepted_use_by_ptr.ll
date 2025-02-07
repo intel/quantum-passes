@@ -392,7 +392,7 @@ entry:
 ; Function Attrs: mustprogress noinline uwtable
 define dso_local void @_Z19passQubitArrayByPtrPti.stub(ptr noundef "qubit_ref" %qubit_vec, i32 noundef %num_ele) local_unnamed_addr #0 section ".qbbs_text" {
 ; CHECK-LABEL: define dso_local void @_Z19passQubitArrayByPtrPti.stub
-; CHECK-SAME: (ptr noundef "qubit_ref" [[QUBIT_VEC:%.*]], i32 noundef [[NUM_ELE:%.*]]) local_unnamed_addr #[[ATTR0]] section ".qbbs_text" {
+; CHECK-SAME: (ptr noundef "qubit_ref" [[QUBIT_VEC:%.*]], i32 noundef [[NUM_ELE:%.*]]) local_unnamed_addr #[[ATTR1:[0-9]+]] section ".qbbs_text" {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[CMP3:%.*]] = icmp sgt i32 [[NUM_ELE]], 0
 ; CHECK-NEXT:    br i1 [[CMP3]], label [[FOR_BODY_PREHEADER:%.*]], label [[FOR_COND_CLEANUP:%.*]]

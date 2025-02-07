@@ -78,7 +78,7 @@ void runGHZ_recursive(iqsdk::FullStateSimulator &device,
 template <int N>
 void runGHZ_recursive(iqsdk::FullStateSimulator &device,
                       typename std::enable_if<(N > 0)>::type * = 0) {
-  runGHZ_recursive<N - 5>(device);
+  //runGHZ_recursive<N - 5>(device);
   runGHZ<N>(device);
 }
 

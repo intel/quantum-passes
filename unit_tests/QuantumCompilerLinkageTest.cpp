@@ -90,7 +90,7 @@ TEST(QuantumCompilerLinkageTest, BasicTest) {
 
   for (auto &F : *M) {
 
-    if (F.getName() == "_ZN4qrt021initializeQrtSystem64EPdPcS1_")
+    if (F.getName() == "_ZN4qrt021initializeQrtSystem64EPdPcS1_j")
       EXPECT_TRUE(&F == qm.QRT_initialize);
     else if (F.getName() == "_ZN4qrt013isInitializedEv")
       EXPECT_TRUE(&F == qm.QRT_is_initialized);

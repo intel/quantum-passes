@@ -167,6 +167,6 @@ attributes #1 = { mustprogress norecurse nounwind uwtable "min-legal-vector-widt
 attributes #2 = { nounwind }
 
 ; CHECK: ERROR: Quantum SDK - Quantum Init Placement Pass says: User-defined qubit mapping has duplicate indices.
-; CHECK: This may be due to an insufficient number of qubit identifers.
+; CHECK: This may be due to an insufficient number of qubit identifiers.
 ; CHECK: If you wish some qubits to be mapped by the compiler, use -1 as a placeholder.
 ; CHECK: LLVM ERROR: Cannot process further. Exiting...

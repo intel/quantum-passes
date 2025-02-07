@@ -45,10 +45,8 @@ cl::list<std::string> PrintFormat("print-format", cl::desc("Printing Format"),
                                   cl::ZeroOrMore);
 cl::list<std::string> OutputDir("odir", cl::desc("Output Directory"),
                                 cl::ZeroOrMore);
-cl::opt<std::string> comp_pos("comp-position",
-                              cl::desc("Position in compilation process."));
 
-static void PrintCircuit(QuantumModule &QM) {
+static void PrintCircuit(QuantumModule &QM, std::string comp_pos) {
   QuantumModule::QCompPosition pos = QM.getCompilationPosition();
 
   if (pos < QuantumModule::kConditioned)
@@ -59,7 +57,7 @@ static void PrintCircuit(QuantumModule &QM) {
     for (auto &QK : QM) {
       for (auto &QBB : QK) {
         proofreader::ProofReader reader(QBB);
-        PrinterInterface interface(&reader);
+        PrinterInterface interface(&reader, comp_pos);
         reader.setCompilationPosition(pos);
         // Default print to the console
         if (PrintFormat.size() == 0) {
@@ -104,7 +102,7 @@ struct PrintCircuitQBBLegacyPass : public ModulePass {
   QuantumModule &QM = QuantumCompilerLinkageLegacyPass::QM;
 
   bool runOnModule(Module &M) override {
-    PrintCircuit(QM);
+    PrintCircuit(QM, "");
 
     return true;
   }
@@ -121,8 +119,8 @@ INITIALIZE_PASS_END(PrintCircuitQBBLegacyPass, "print-circuit-qbb",
 
 PreservedAnalyses PrintCircuitQBBPass::run(Module &M,
                                            ModuleAnalysisManager &MAM) {
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
-  PrintCircuit(*QMP.QM);
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
+  PrintCircuit(*QMP.QM, comp_pos);
 
   return PreservedAnalyses::all();
 }

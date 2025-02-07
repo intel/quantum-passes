@@ -12,7 +12,7 @@
 # binaries.
 ###############################################################################
 
-TOOL_NAME="Intel(R) Quantum Compiler: 2023 (Developers' utility)"
+TOOL_NAME="Intel(R) Quantum Compiler: 2024 (Developers' utility)"
 ME="$(basename "$0")"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
@@ -32,27 +32,33 @@ HYBRID_MODE="false"
 SHARED_MODE="false"
 BRIDGE_MODE="false"
 
-OPTIMIZATION_OPT=0
-VERBOSE_MODE=0
-PRINT_CIRCUIT_QBB=0
-USER_PLACED_PASS_MODE=0
 KEEP_FILES=0
 
 QUEUEING=""
 PLACEMENT_PASS="simple-qbit-placement" ## equivalent to 'none', but w/o need of config file
-PLACEMENT=""
+PLACEMENT=()
 SCHED_METHOD_FR="none"
 SCHED_METHOD_BK="retrace"
+SERIALIZE=""
+USE_SYNTH=""
+USE_PRINT=""
+USE_VERBOSE=""
+START_STAGE="begin"
+END_STAGE="end"
+DEBUG_PASSES=""
+PRINT_FLAGS=()
+PRINT_DIR_FLAGS=()
 USER_GENERATED_PASSES_TO_RUN_PRECONDITION=""
 USER_GENERATED_PASS_ARGS_PRECONDITION=()
 USER_GENERATED_PASSES_TO_RUN_PRESYNTHESIS=""
 USER_GENERATED_PASS_ARGS_PRESYNTHESIS=()
 USER_GENERATED_PASSES_TO_RUN_PRESCHEDULE=""
-USER_GENERATED_PASS_ARGS_PRESCHDULE=()
+USER_GENERATED_PASS_ARGS_PRESCHEDULE=()
 USER_GENERATED_PASSES_TO_RUN_PRELOWER=""
 USER_GENERATED_PASS_ARGS_PRELOWER=()
 USER_GENERATED_PASSES_TO_RUN_PRESPLIT=""
 USER_GENERATED_PASS_ARGS_PRESPLIT=()
+GEN_OPT_ADDED_FLAGS=()
 
 QASMBRIDGE_RUNNER=""
 declare -a OTHER_INCLUDE_DIRS=()
@@ -144,7 +150,7 @@ show_help() {
     echo
     echo "Optional arguments"
     echo "           -q :   Enable hybrid (quantum + classical) compilation."
-    echo "                  Must provided path to QRT files. Disabled by default."
+    echo "                  Must provide path to QRT files. Disabled by default."
     echo " -b <BIN_DIR> :   Path of the LLVM / Clang bin directory containing all the"
     echo "                  compiler binaries. Defaults to <project-root>/../iqc_install/bin."
     echo " -t <OOT_DIR> :   Path of the out of tree libraries for IntelQuantum. Defaults"
@@ -159,6 +165,7 @@ show_help() {
     echo "    -c <FILE> :   Path of the configuration file."
     echo "                  Defaults to 'intel-quantum-sdk.json'"
     echo "    -f <FLAG> :   Pass flag to clang."
+    echo "    -g <FLAG> :   Pass additional flag to IQC; see README for a description of the options."
     echo "    -F <FLAG> :   Pass flag to FLEQ compilation."
     echo "                  Usage example: -F <opt1> -F <opt2> ..."
     echo "                  Options:"
@@ -195,6 +202,10 @@ show_help() {
     echo "                  Usage example (choose only one): -K retrace -K bubble-sort -K oddeven-sort -K grid"
     echo "                  Refer to documentation for details on each method."
     echo "           -k :   Keep intermediate compilation files, do not remove at the end of compilation."
+    echo "   -z <stage> :   Starting stage for compilation, valid names are: start, intrinsics, flatten, unroll,"
+    echo "                  validate, synthesize, lower, schedule, separate, split, end"
+    echo "   -Z <stage> :   Ending stage for compilation, valid names are: start, intrinsics, flatten, unroll,"
+    echo "                  validate, synthesize, lower, schedule, separate, split, end"
     echo ""
     echo "User Generated Pass Options"
     echo " -E <OPT_LIB> :   Specification of where to find user-written library of passes."
@@ -319,7 +330,7 @@ collect_mpi_options() {
 }
 
 parse_options() {
-    while getopts ":hb:t:Bo:I:L:R:l:vqsc:p:O:P:S:K:mkf:a:A:e:E:F:" opt; do
+    while getopts ":hb:t:Bo:I:L:R:d:T:M:l:vqsc:p:O:P:jJ:S:NK:mkf:g:F:a:A:e:E:F:X:x:D:z:Z:" opt; do
         case "$opt" in
             h)
                 show_help
@@ -371,29 +382,45 @@ parse_options() {
                 KEEP_FILES=1
                 ;;
             v)
-                VERBOSE_MODE=1
+                USE_VERBOSE="--verbose"
+                ;;
+            J)
+                if [[ "$OPTARG" == "basic" ]]; then
+                    EO_DECOMP_FLAG="false"
+                elif [[ "$OPTARG" == "library" ]]; then
+                    EO_DECOMP_FLAG="true"
+                fi
+                ;;
+            j)
+                IMPLICIT_JZ_JN="true"
                 ;;
             O)
                 if [ "$OPTARG" -ge 2 ]; then
                     echo "No optimization option $OPTARG available..."
                     exit
+                elif [ "$OPTARG" -ge 1 ]; then
+                    USE_SYNTH="--use-synth"
                 fi
-                OPTIMIZATION_OPT=$OPTARG
                 ;;
             P)
-                PRINT_CIRCUIT_QBB=1
                 prints+=("$OPTARG")
+                USE_PRINT="--circuit-print"
+                PRINTER_OUTPUT_DIR="$OUTPUT_DIR"/
+                PRINT_DIR_FLAGS=("-odir" "$PRINTER_OUTPUT_DIR")
+                PRINT_FLAGS+=("--print-format" "$OPTARG")
                 ;;
             m)
                 QUEUEING="-queue-measurements"
                 ;;
             p)
-                PLACEMENT_PASS="q-init-placement"
                 PLACEMENT=("--placement-method" "$OPTARG")
                 ;;
             S)
                 if [[ "$OPTARG" == "greedy" ]] || [[ "$OPTARG" == "none" ]] || [[ "$OPTARG" == "serial" ]] || [[ "$OPTARG" == "none,serial" ]] || [[ "$OPTARG" == "greedy,serial" ]]; then
                     SCHED_METHOD_FR="$OPTARG"
+                    if [[ "$OPTARG" == *"serial"* ]]; then
+                        SERIALIZE="--serialize-kernels"
+                    fi
                 else
                     echo "ERROR: Unsupported forward scheduling method."
                     exit 1
@@ -408,15 +435,12 @@ parse_options() {
                 fi
                 ;;
             E)
-                USER_PLACED_PASS_MODE=1
                 USER_GENERATED_PASS_PATH="$OPTARG"
                 ;;
             e)
-                USER_PLACED_PASS_MODE=1
                 CURRENT_PASS_SECTION="$OPTARG"
                 ;;
             a)
-                USER_PLACED_PASS_MODE=1
                 if [ "$CURRENT_PASS_SECTION" == "precond" ]; then
                     USER_GENERATED_PASSES_TO_RUN_PRECONDITION="$OPTARG"
                 elif [ "$CURRENT_PASS_SECTION" == "prelower" ]; then
@@ -447,6 +471,12 @@ parse_options() {
                     echo "Unknown optimization location $CURRENT_PASS_SECTION";
                     exit 1
                 fi
+                ;;
+            z)
+                START_STAGE=$OPTARG
+                ;;
+            Z)
+                END_STAGE=$OPTARG
                 ;;
             *)
                 echo "ERROR: Invalid options provided. Please refer to the help message for supported options..."
@@ -488,116 +518,50 @@ qasmbridge() {
 }
 
 ###############################################################################
-
-# Function to run printer pass
-# Takes 3 arguments, first is the IR file
-# Second argument is the name of the compilation step we have reached
-# Third argument is whether IR has been lowered to native gates yet 
-
-printerPass() {
-    LOWERED=""
-    if [ "$3" == true ]; then
-        LOWERED=",spin-native-annotate"
-    fi
-
-    for print_method in "${prints[@]}"; do
-        PRINTER_OUTPUT_DIR="$OUTPUT_DIR"/
-        echo "Printing circuit diagrams to $print_method..."
-        if [ "$print_method" == "json" ]; then
-            echo "Printing json circuit diagrams to directory 'Visualization'..."
-        fi
-
-        "$(OPT)" -S -load-pass-plugin "$(LIBRARY_LOCATION)"/libIntelQuantumIRPasses_shared.so ${QUEUEING:+"$QUEUEING"} -p="q-annotations-to-json$LOWERED,print-circuit-qbb" --print-format "$print_method" -comp-position="$2" -odir "$PRINTER_OUTPUT_DIR" "$1" -o "$1"
-    done
-}
-
-###############################################################################
 compile() {
     filename=$(basename -- "$INPUT_FILE")
     extension="${filename##*.}"
     filename="${filename%.*}"
 
     ## IR files
+    compilation_file=""
     ir_file="$OUTPUT_DIR"/"$filename".ll
-    ir_flattened="$OUTPUT_DIR"/"$filename"_flattened.ll
-    ir_loop_unrolled="$OUTPUT_DIR"/"$filename"_unrolled.ll
-    ir_loop_unrolled_user="$OUTPUT_DIR"/"$filename"_unrolled_user.ll
-    ir_replaced="$OUTPUT_DIR"/"$filename"_replaced.ll
-    ir_conditioned="$OUTPUT_DIR"/"$filename"_conditioned.ll
-    ir_conditioned_user="$OUTPUT_DIR"/"$filename"_conditioned_user.ll
-    ir_synthesized="$OUTPUT_DIR"/"$filename"_synthesized.ll
-    ir_synthesized_user="$OUTPUT_DIR"/"$filename"_synthesized_user.ll
-    ir_lowered="$OUTPUT_DIR"/"$filename"_lowered.ll
-    ir_lowered_user="$OUTPUT_DIR"/"$filename"_lowered_user.ll
+    ir_flattened="$OUTPUT_DIR"/"$filename"_flatten.ll
+    ir_loop_unrolled="$OUTPUT_DIR"/"$filename"_unroll.ll
+    ir_replaced="$OUTPUT_DIR"/"$filename"_intrinsics.ll
+    ir_conditioned="$OUTPUT_DIR"/"$filename"_validate.ll
+    ir_synthesized="$OUTPUT_DIR"/"$filename"_synthesize.ll
+    ir_lowered="$OUTPUT_DIR"/"$filename"_lower.ll
     ir_scheduled="$OUTPUT_DIR"/"$filename"_scheduled.ll
-    ir_scheduled_user="$OUTPUT_DIR"/"$filename"_scheduled_user.ll
-    ir_separated="$OUTPUT_DIR"/"$filename"_separated.ll
-    ir_quantum_final="$OUTPUT_DIR"/"$filename"_separated_quantum.ll
+    ir_separated="$OUTPUT_DIR"/"$filename"_separate.ll
+    ir_quantum_final="$OUTPUT_DIR"/"$filename"_quantum.ll
     ir_classical_final="$OUTPUT_DIR"/"$filename"_classical_final.ll
+
+    if [ "${END_STAGE}" == "intrinsics" ]; then
+        compilation_file="$ir_replaced"
+    elif [ "${END_STAGE}" == "flatten" ]; then
+        compilation_file="$ir_flattened"
+    elif [ "${END_STAGE}" == "unroll" ]; then
+        compilation_file="$ir_loop_unrolled"
+    elif [ "${END_STAGE}" == "validate" ]; then
+        compilation_file="$ir_conditioned"
+    elif [ "${END_STAGE}" == "synthesize" ]; then
+        compilation_file="$ir_synthesized"
+    elif [ "${END_STAGE}" == "lower" ]; then
+        compilation_file="$ir_lowered"
+    elif [ "${END_STAGE}" == "schedule" ]; then
+        compilation_file="$ir_scheduled"
+    elif [ "${END_STAGE}" == "separate" ]; then
+        compilation_file="$ir_separated"
+    else
+        compilation_file="$ir_classical_final"
+    fi
 
     ## Assembly file, Object file, and executable
     qs_64_file="$OUTPUT_DIR"/"$filename".qs
     qo_64_file="$OUTPUT_DIR"/"$filename".qo
     hybrid_exe_file="$OUTPUT_DIR"/"$filename"
 
-    ## Quantum Loop Unrolling Arguments
-    ## The following list of arguments is based of the expanded form of -O1 and -O3, with the base
-    ## -loop-unroll pass replaced with the quantum specific -q-loop-unroll pass. The original list
-    ## of arguments is included for reference purposes.
-    ##
-    ## -O1 -loops -loop-simplify -loop-rotate -lcssa -loop-idiom -loop-deletion -loop-unroll -unroll-threshold=100000000 -sccp -instcombine -early-cse -mem2reg -simplifycfg
-    quantum_loop_unroll_O1="-passes=no-op-module,function(instcombine)"
-    quantum_loop_unroll_O1+=",rpo-function-attrs,globalopt,globaldce,float2int"
-    quantum_loop_unroll_O1+=",lower-constant-intrinsics,loop-simplify,lcssa"
-    quantum_loop_unroll_O1+=",loop-rotate"
-    quantum_loop_unroll_O1+=",loop-distribute"
-    quantum_loop_unroll_O1+=",loop-vectorize,loop-simplify"
-    quantum_loop_unroll_O1+=",loop-load-elim"
-    quantum_loop_unroll_O1+=",instcombine,simplifycfg"
-    quantum_loop_unroll_O1+=",instcombine,loop-simplify,lcssa"
-    quantum_loop_unroll_O1+=",cgscc(function(loop(q-loop-unroll))),instcombine,loop-simplify"
-    quantum_loop_unroll_O1+=",lcssa,function(loop-mssa(licm))"
-    quantum_loop_unroll_O1+=",transform-warning,alignment-from-assumptions,strip-dead-prototypes"
-    quantum_loop_unroll_O1+=",loop-simplify,lcssa,loop-sink"
-    quantum_loop_unroll_O1+=",instsimplify,div-rem-pairs,simplifycfg"
-    quantum_loop_unroll_O1+=",loop-simplify,lcssa,loop-rotate,lcssa"
-    quantum_loop_unroll_O1+=",loop-idiom,loop-deletion,no-op-loop,cgscc(function(loop(q-loop-unroll))),sccp"
-    quantum_loop_unroll_O1+=",instcombine,early-cse,mem2reg,simplifycfg,verify"
-    ## -O3 -loops -loop-simplify -loop-rotate -lcssa -loop-idiom -loop-deletion -loop-unroll -unroll-threshold=100000000 -sccp -instcombine -early-cse -mem2reg -simplifycfg
-    quantum_loop_unroll_O3="-passes=forceattrs,inferattrs,callsite-splitting,ipsccp,called-value-propagation,attributor,globalopt"
-    quantum_loop_unroll_O3+=",deadargelim"
-    quantum_loop_unroll_O3+=",instcombine,simplifycfg,inline,function-attrs"
-    quantum_loop_unroll_O3+=",argpromotion,sroa,speculative-execution"
-    quantum_loop_unroll_O3+=",jump-threading,correlated-propagation,simplifycfg,aggressive-instcombine"
-    quantum_loop_unroll_O3+=",instcombine,libcalls-shrinkwrap"
-    quantum_loop_unroll_O3+=",pgo-memop-opt"
-    quantum_loop_unroll_O3+=",tailcallelim,simplifycfg,reassociate"
-    quantum_loop_unroll_O3+=",loop-simplify,lcssa,loop-rotate"
-    quantum_loop_unroll_O3+=",function(loop-mssa(licm)),simple-loop-unswitch,simplifycfg"
-    quantum_loop_unroll_O3+=",instcombine,loop-simplify,lcssa,indvars"
-    quantum_loop_unroll_O3+=",loop-idiom,loop-deletion,function(loop(q-loop-unroll)),mldst-motion"
-    quantum_loop_unroll_O3+=",gvn,memcpyopt,sccp"
-    quantum_loop_unroll_O3+=",bdce,instcombine"
-    quantum_loop_unroll_O3+=",jump-threading,correlated-propagation,dse"
-    quantum_loop_unroll_O3+=",loop-simplify,lcssa,function(loop-mssa(licm)),adce,simplifycfg"
-    quantum_loop_unroll_O3+=",instcombine"
-    quantum_loop_unroll_O3+=",elim-avail-extern,rpo-function-attrs,globalopt,globaldce,float2int"
-    quantum_loop_unroll_O3+=",lower-constant-intrinsics,lcssa"
-    quantum_loop_unroll_O3+=",loop-rotate"
-    quantum_loop_unroll_O3+=",loop-distribute"
-    quantum_loop_unroll_O3+=",loop-vectorize,loop-simplify"
-    quantum_loop_unroll_O3+=",loop-load-elim"
-    quantum_loop_unroll_O3+=",instcombine,simplifycfg"
-    quantum_loop_unroll_O3+=",slp-vectorizer"
-    quantum_loop_unroll_O3+=",instcombine,loop-simplify,lcssa,function(loop(q-loop-unroll))"
-    quantum_loop_unroll_O3+=",instcombine,loop-simplify,lcssa"
-    quantum_loop_unroll_O3+=",function(loop-mssa(licm)),transform-warning"
-    quantum_loop_unroll_O3+=",alignment-from-assumptions,strip-dead-prototypes,globaldce,constmerge"
-    quantum_loop_unroll_O3+=",lcssa,loop-sink"
-    quantum_loop_unroll_O3+=",instsimplify,div-rem-pairs,simplifycfg"
-    quantum_loop_unroll_O3+=",loop-simplify,lcssa,loop-rotate,lcssa"
-    quantum_loop_unroll_O3+=",loop-idiom,loop-deletion,function(loop(q-loop-unroll)),sccp"
-    quantum_loop_unroll_O3+=",instcombine,early-cse,mem2reg,simplifycfg,verify"
     if [[ $extension != "cpp" && $extension != "ll" ]]; then
         echo "Invalid input file, expected C++ source file or LLVM source file, Exiting..."
         exit 1
@@ -630,288 +594,65 @@ compile() {
         ir_file="$INPUT_FILE"
         tools_loc="$(TOOLS_LOCATION)"
         ir_file_stage=$("$tools_loc"/quantum-module-stage "$ir_file")
+        if [[ "$ir_file_stage" == 1 ]]; then
+            START_STAGE="synthesize"
+        elif [[ "$ir_file_stage" == 2 ]]; then
+            START_STAGE="synthesize"
+        elif [[ "$ir_file_stage" == 3 ]]; then
+            START_STAGE="lower"
+        elif [[ "$ir_file_stage" == 4 ]]; then
+            START_STAGE="schedule"
+        elif [[ "$ir_file_stage" == 5 ]]; then
+            START_STAGE="schedule"
+        elif [[ "$ir_file_stage" == 6 ]]; then
+            START_STAGE="schedule"
+        elif [[ "$ir_file_stage" == 7 ]]; then
+            START_STAGE="schedule"
+        elif [[ "$ir_file_stage" == 8 ]]; then
+            START_STAGE="schedule"
+        elif [[ "$ir_file_stage" == 9 ]]; then
+            START_STAGE="separate"
+        elif [[ "$ir_file_stage" == 10 ]]; then
+            START_STAGE="split"
+        elif [[ "$ir_file_stage" == 11 ]]; then
+            echo "Error: Cannot accept a presplit module."
+            exit 1
+        fi
     fi
 
     echo "Intermediate representation (IR) output file: "
     realpath "$ir_file"
+    result=0
 
-    echo "$DECORATOR"
-    if [ "$ir_file_stage" -eq 0 ]; then
-        echo "Transforming IR..."
-
-        "$(OPT)" -S -load-pass-plugin "$(LIBRARY_LOCATION)"/libIntelQuantumIRPasses_shared.so -p="insert-q-intrinsics,insert-q-attrs" "$ir_file" -o "$ir_replaced"
+    if [[ "$USER_GENERATED_PASS_PATH" != "" ]]; then
+        "$(TOOLS_LOCATION)"/quantum-optimization-driver -load-pass-plugin "$USER_GENERATED_PASS_PATH" \
+        -S "$ir_file" -o "$compilation_file" --start-stage "$START_STAGE"  --end-stage "$END_STAGE" \
+        -q-config="$CONFIG_FILE" -q-sdk="$SDK_PATH"  ${SERIALIZE:+"$SERIALIZE"} "${PLACEMENT[@]}" ${QUEUEING:+"$QUEUEING"} \
+        -forward-scheduling="$SCHED_METHOD_FR"  "${GEN_OPT_ADDED_FLAGS[@]}"\
+        -backward-scheduling="$SCHED_METHOD_BK" ${USE_SYNTH:+"$USE_SYNTH"} ${USE_VERBOSE:+"$USE_VERBOSE"} ${USE_PRINT:+"$USE_PRINT"} "${PRINT_DIR_FLAGS[@]}" "${PRINT_FLAGS[@]}" \
+        -custom-passes="precond:$USER_GENERATED_PASSES_TO_RUN_PRECONDITION" "${USER_GENERATED_PASS_ARGS_PRECONDITION[@]}" \
+        -custom-passes="prelower:$USER_GENERATED_PASSES_TO_RUN_PRELOWER" "${USER_GENERATED_PASS_ARGS_PRELOWER[@]}" \
+        -custom-passes="presynth:$USER_GENERATED_PASSES_TO_RUN_PRESYNTHESIS" "${USER_GENERATED_PASS_ARGS_PRESYNTHESIS[@]}" \
+        -custom-passes="preschedule:$USER_GENERATED_PASSES_TO_RUN_PRESCHEDULE" "${USER_GENERATED_PASS_ARGS_PRESCHEDULE[@]}" \
+        -custom-passes="presplit:$USER_GENERATED_PASSES_TO_RUN_PRESPLIT" "${USER_GENERATED_PASS_ARGS_PRESPLIT[@]}"
         result="$?"
-        if [ ! "$result" -eq 0 ]; then
-            echo "Unexpected error replacing quantum functions. Exiting..."
-            exit 1
-        fi
-
-        "$(OPT)" -S -load-pass-plugin "$(LIBRARY_LOCATION)"/libIntelQuantumIRPasses_shared.so -p="flatten-qk,function(dce)" "$ir_replaced" -o "$ir_flattened"
-        result="$?"
-        if [ ! "$result" -eq 0 ]; then
-            echo "Unexpected error inlining functions. Exiting..."
-            exit 1
-        fi
-
-        ### NOTE: Run unrolling step multiple times in a for loop until no change, or 51 times (whichever is earlier)
-        "$(OPT)" -S -load-pass-plugin "$(LIBRARY_LOCATION)"/libIntelQuantumIRPasses_shared.so "$quantum_loop_unroll_O1" "$ir_flattened" -o "${ir_loop_unrolled}_0"
-        for i in {1..50}
-        do
-            "$(OPT)" -S -load-pass-plugin "$(LIBRARY_LOCATION)"/libIntelQuantumIRPasses_shared.so "$quantum_loop_unroll_O3" "${ir_loop_unrolled}_$((i-1))" -o "${ir_loop_unrolled}_$i"
-            ## compare the number of lines
-            if [ "$(wc -l < "${ir_loop_unrolled}_$((i-1))")" -eq "$(wc -l < "${ir_loop_unrolled}_$i")" ]; then
-                ## stop unrolling
-                cp "${ir_loop_unrolled}_$i" "$ir_loop_unrolled"
-                rm "${ir_loop_unrolled}_$((i-1))"
-                rm "${ir_loop_unrolled}_$i"
-                break
-            else
-                rm "${ir_loop_unrolled}_$((i-1))"
-            fi
-        done
-        if [ "$i" -eq 50 ]; then
-            cp "${ir_loop_unrolled}_$i" "$ir_loop_unrolled"
-            rm "${ir_loop_unrolled}_$((i-1))"
-            rm "${ir_loop_unrolled}_$i"
-        fi
-        rm -f "${ir_loop_unrolled}_0"
     else
-        cp "$ir_file" "$ir_replaced"
-        cp "$ir_replaced" "$ir_flattened"
-        cp "$ir_flattened" "$ir_loop_unrolled"
+        "$(TOOLS_LOCATION)"/quantum-optimization-driver -S "$ir_file" -o "$compilation_file" \
+        -q-config="$CONFIG_FILE" -q-sdk="$SDK_PATH" ${SERIALIZE:+"$SERIALIZE"} \
+        ${QUEUEING:+"$QUEUEING"} --start-stage "$START_STAGE" --end-stage "$END_STAGE" "${GEN_OPT_ADDED_FLAGS[@]}" \
+        ${USE_VERBOSE:+"$USE_VERBOSE"} ${USE_PRINT:+"$USE_PRINT"} "${PRINT_FLAGS[@]}" -forward-scheduling="$SCHED_METHOD_FR" \
+        "${PRINT_DIR_FLAGS[@]}" "${PLACEMENT[@]}" ${USE_SYNTH:+"$USE_SYNTH"} -backward-scheduling="$SCHED_METHOD_BK"
+        result="$?"
     fi
 
-    if [ "$ir_file_stage" -lt 2 ]; then
-        if [[ "$USER_PLACED_PASS_MODE" -eq 1 && "$USER_GENERATED_PASSES_TO_RUN_PRECONDITION" != "" ]]; then 
-            echo "Running User-Specified "
-            "$(OPT)" -S -load-pass-plugin "$(LIBRARY_LOCATION)"/libIntelQuantumIRPasses_shared.so -load-pass-plugin "$USER_GENERATED_PASS_PATH" -p="q-annotations-to-json,spin-native-annotate,$USER_GENERATED_PASSES_TO_RUN_PRECONDITION" "${USER_GENERATED_PASS_ARGS_PRECONDITION[@]}" "$ir_loop_unrolled" -o "$ir_loop_unrolled_user"
-            result="$?"
-            if [ ! "$result" -eq 0 ]; then
-                echo "Unexpected user pass error. Exiting..."
-                exit 1
-            fi
-        else
-            cp "$ir_loop_unrolled" "$ir_loop_unrolled_user"
-        fi
-
-        echo "Validating and processing quantum kernels..."
-        "$(OPT)" -S -load-pass-plugin "$(LIBRARY_LOCATION)"/libIntelQuantumIRPasses_shared.so -p="q-annotations-to-json,validate-and-condition-qbb" "$ir_loop_unrolled_user" -o "$ir_conditioned"
-
-        result="$?"
-        if [ ! "$result" -eq 0 ]; then
-            echo "Unexpected conditioning error. Exiting..."
-            exit 1
-        fi
-        
-        if [ "$PRINT_CIRCUIT_QBB" -eq 1 ]; then
-            echo "Printing quantum circuit diagrams before decomposition to native gates..."
-            printerPass "$ir_conditioned" "canonical" false
-        fi
-
-        if [ "$VERBOSE_MODE" -eq 1 ]; then
-            echo "Printing quantum circuit stats before decomposition to native gates..."
-            "$(OPT)" -S -load-pass-plugin "$(LIBRARY_LOCATION)"/libIntelQuantumIRPasses_shared.so ${QUEUEING:+"$QUEUEING"} -p="q-annotations-to-json,simple-qbit-placement,q-stats-print" -q-config="$CONFIG_FILE" -q-sdk="$SDK_PATH" "$ir_conditioned" -o "$ir_conditioned_user"
-            echo "$DECORATOR"
-        fi
-    else
-        cp "$ir_loop_unrolled" "$ir_loop_unrolled_user"
-        cp "$ir_loop_unrolled_user" "$ir_conditioned"
-    fi
-
-    if [ "$ir_file_stage" -lt 3 ]; then
-        echo "Optimizing using option $OPTIMIZATION_OPT..."
-        if [ "$OPTIMIZATION_OPT" -eq 0 ]; then
-            if [[ "$USER_PLACED_PASS_MODE" -eq 1 && "$USER_GENERATED_PASSES_TO_RUN_PRELOWER" != "" ]]; then 
-                echo "Running User-Specified "
-                USER_PASS_ARG=()
-                if [ "$USER_GENERATED_PASS_PATH" != "" ]; then
-                    USER_PASS_ARG=("-load-pass-plugin" "$USER_GENERATED_PASS_PATH")
-                fi
-                "$(OPT)" -S -load-pass-plugin "${IQC_PASSES_LIB_DIR}"/libIntelQuantumIRPasses_shared.so "${USER_PASS_ARG[@]}" -p="q-annotations-to-json,spin-native-annotate,$USER_GENERATED_PASSES_TO_RUN_PRELOWER" "${USER_GENERATED_PASS_ARGS_PRELOWER[@]}" "$ir_conditioned" -o "$ir_conditioned_user"
-                result="$?"
-                if [ ! "$result" -eq 0 ]; then
-                    echo "Unexpected user pass error. Exiting..."
-                    exit 1
-                fi
-            else
-                cp "$ir_conditioned" "$ir_conditioned_user"
-            fi
-
-            "$(OPT)" -S -load-pass-plugin "$(LIBRARY_LOCATION)"/libIntelQuantumIRPasses_shared.so ${QUEUEING:+"$QUEUEING"} -p="q-annotations-to-json,$PLACEMENT_PASS,spin-native-annotate,spin-lower-from-canonical,dce" "${PLACEMENT[@]}" -q-config="$CONFIG_FILE" -q-sdk="$SDK_PATH" "$ir_conditioned_user" -o "$ir_lowered"
-            result="$?"
-            if [ ! "$result" -eq 0 ]; then
-                echo "Unexpected lowering error. Exiting..."
-                exit 1
-            fi
-        else
-            if [[ "$USER_PLACED_PASS_MODE" -eq 1 && "$USER_GENERATED_PASSES_TO_RUN_PRESYNTHESIS" != "" ]]; then 
-                echo "Running User-Specified "
-                USER_PASS_ARG=()
-                if [ "$USER_GENERATED_PASS_PATH" != "" ]; then
-                    USER_PASS_ARG=("-load-pass-plugin" "$USER_GENERATED_PASS_PATH")
-                fi
-                "$(OPT)" -S -load-pass-plugin "${IQC_PASSES_LIB_DIR}"/libIntelQuantumIRPasses_shared.so "${USER_PASS_ARG[@]}" -p="q-annotations-to-json,spin-native-annotate,$USER_GENERATED_PASSES_TO_RUN_PRESYNTHESIS" "${USER_GENERATED_PASS_ARGS_PRESYNTHESIS[@]}" "$ir_conditioned" -o "$ir_conditioned_user"
-                result="$?"
-                if [ ! "$result" -eq 0 ]; then
-                    echo "Unexpected user pass error. Exiting..."
-                    exit 1
-                fi
-            else
-                cp "$ir_conditioned" "$ir_conditioned_user"
-            fi
-
-            "$(OPT)" -S -load-pass-plugin "$(LIBRARY_LOCATION)"/libIntelQuantumIRPasses_shared.so ${QUEUEING:+"$QUEUEING"} -p="q-annotations-to-json,$PLACEMENT_PASS,dce" -warnings-as-errors=true -q-config="$CONFIG_FILE" -q-sdk="$SDK_PATH" "$ir_conditioned_user" -o "$ir_synthesized"
-            result="$?"
-            if [ ! "$result" -eq 0 ]; then
-                echo "Unexpected synthesis error. Exiting..."
-                exit 1
-            fi
-
-            if [ "$PRINT_CIRCUIT_QBB" -eq 1 ]; then
-                echo "Printing quantum circuit diagrams after synthesis..."
-                printerPass "$ir_synthesized" "synthesized" false
-            fi
-
-            if [ "$VERBOSE_MODE" -eq 1 ]; then
-                echo "Printing quantum circuit stats after synthesis..."
-                "$(OPT)" -S -load-pass-plugin "$(LIBRARY_LOCATION)"/libIntelQuantumIRPasses_shared.so ${QUEUEING:+"$QUEUEING"} -p="q-annotations-to-json,spin-native-annotate,simple-qbit-placement,q-stats-print" -q-config="$CONFIG_FILE" -q-sdk="$SDK_PATH" "$ir_synthesized" -o "$ir_synthesized"
-                echo "$DECORATOR"
-            fi
-
-            if [[ "$USER_PLACED_PASS_MODE" -eq 1 && "$USER_GENERATED_PASSES_TO_RUN_PRELOWER" != "" ]]; then 
-                echo "Running User-Specified "
-                USER_PASS_ARG=()
-                if [ "$USER_GENERATED_PASS_PATH" != "" ]; then
-                    USER_PASS_ARG=("-load-pass-plugin" "$USER_GENERATED_PASS_PATH")
-                fi
-                "$(OPT)" -S -load-pass-plugin "${IQC_PASSES_LIB_DIR}"/libIntelQuantumIRPasses_shared.so "${USER_PASS_ARG[@]}" -p="q-annotations-to-json,spin-native-annotate,$USER_GENERATED_PASSES_TO_RUN_PRELOWER" "${USER_GENERATED_PASS_ARGS_PRELOWER[@]}" "$ir_synthesized" -o "$ir_synthesized_user"
-                result="$?"
-                if [ ! "$result" -eq 0 ]; then
-                    echo "Unexpected user pass error. Exiting..."
-                    exit 1
-                fi
-            else
-                cp "$ir_synthesized" "$ir_synthesized_user"
-            fi
-
-            "$(OPT)" -S -load-pass-plugin "$(LIBRARY_LOCATION)"/libIntelQuantumIRPasses_shared.so ${QUEUEING:+"$QUEUEING"} "${PLACEMENT[@]}" -q-config="$CONFIG_FILE" -q-sdk="$SDK_PATH" -p="q-annotations-to-json,spin-native-annotate,spin-lower-from-canonical,dce" "$ir_synthesized_user" -o "$ir_lowered"
-            result="$?"
-            if [ ! "$result" -eq 0 ]; then
-                echo "Unexpected optimization and lowering error. Exiting..."
-                exit 1
-            fi
-
-            if [ "$KEEP_FILES" -ne 0 ]; then
-                rm "$ir_synthesized"
-                rm "$ir_synthesized_user"
-            fi
-        fi
-
-        if [ "$PRINT_CIRCUIT_QBB" -eq 1 ]; then
-            echo "Printing quantum circuit diagrams after decomposition to native gates..."
-            printerPass "$ir_lowered" "lowered" true
-        fi
-
-        if [ "$VERBOSE_MODE" -eq 1 ]; then
-            echo "Printing quantum circuit stats after decomposition to native gates..."
-            "$(OPT)" -S -load-pass-plugin "$(LIBRARY_LOCATION)"/libIntelQuantumIRPasses_shared.so ${QUEUEING:+"$QUEUEING"} -p="q-annotations-to-json,spin-native-annotate,simple-qbit-placement,q-stats-print" -q-config="$CONFIG_FILE" -q-sdk="$SDK_PATH" "$ir_lowered" -o "$ir_lowered"
-            echo "$DECORATOR"
-        fi
-    else
-        cp "$ir_conditioned" "$ir_conditioned_user"
-        cp "$ir_conditioned_user" "$ir_lowered"
-    fi
-
-    if [ "$ir_file_stage" -lt 5 ]; then
-        if [[ "$USER_PLACED_PASS_MODE" -eq 1 && "$USER_GENERATED_PASSES_TO_RUN_PRESCHEDULE" != "" ]]; then 
-            echo "Running User-Specified "
-            USER_PASS_ARG=()
-            if [ "$USER_GENERATED_PASS_PATH" != "" ]; then
-                USER_PASS_ARG=("-load-pass-plugin" "$USER_GENERATED_PASS_PATH")
-            fi
-            "$(OPT)" -S -load-pass-plugin "${IQC_PASSES_LIB_DIR}"/libIntelQuantumIRPasses_shared.so "${USER_PASS_ARG[@]}" -p="q-annotations-to-json,spin-native-annotate,$USER_GENERATED_PASSES_TO_RUN_PRESCHEDULE" "${USER_GENERATED_PASS_ARGS_PRESCHDULE[@]}" "$ir_lowered" -o "$ir_lowered_user"
-            result="$?"
-            if [ ! "$result" -eq 0 ]; then
-                echo "Unexpected user pass error. Exiting..."
-                exit 1
-            fi
-        else
-            cp "$ir_lowered" "$ir_lowered_user"
-        fi
-
-        echo "Scheduling quantum gates to qubit connectivity" 
-        "$(OPT)" -S -load-pass-plugin "$(LIBRARY_LOCATION)"/libIntelQuantumIRPasses_shared.so ${QUEUEING:+"$QUEUEING"} -p="q-annotations-to-json,spin-native-annotate,$PLACEMENT_PASS,q-scheduler,convert-qbit-to-qid,dce,spin-angles-in-range" -q-config="$CONFIG_FILE" -q-sdk="$SDK_PATH" "${PLACEMENT[@]}" -forward-scheduling="$SCHED_METHOD_FR" -backward-scheduling="$SCHED_METHOD_BK" "$ir_lowered_user" -o "$ir_scheduled"
-
-        if [ "$PRINT_CIRCUIT_QBB" -eq 1 ]; then
-            echo "Printing quantum circuit diagrams after scheduling..."
-            printerPass "$ir_scheduled" "scheduled" true
-        fi
-
-        if [ "$VERBOSE_MODE" -eq 1 ]; then
-            echo "Printing quantum circuit stats after scheduling..."
-            "$(OPT)" -S -load-pass-plugin "$(LIBRARY_LOCATION)"/libIntelQuantumIRPasses_shared.so ${QUEUEING:+"$QUEUEING"} -p="q-annotations-to-json,spin-native-annotate,simple-qbit-placement,q-stats-print" -q-config="$CONFIG_FILE" -q-sdk="$SDK_PATH" "$ir_scheduled" -o "$ir_scheduled"
-            echo "$DECORATOR"
-        fi
-    else
-        cp "$ir_lowered" "$ir_lowered_user"
-        cp "$ir_lowered_user" "$ir_scheduled"
-    fi
-
-    if [ "$ir_file_stage" -lt 9 ]; then
-        if [[ "$USER_PLACED_PASS_MODE" -eq 1 && "$USER_GENERATED_PASSES_TO_RUN_PRESPLIT" != "" ]]; then 
-            echo "Running User-Specified "
-            USER_PASS_ARG=()
-            if [ "$USER_GENERATED_PASS_PATH" != "" ]; then
-                USER_PASS_ARG=("-load-pass-plugin" "$USER_GENERATED_PASS_PATH")
-            fi
-            "$(OPT)" -S -load-pass-plugin "${IQC_PASSES_LIB_DIR}"/libIntelQuantumIRPasses_shared.so "${USER_PASS_ARG[@]}" -p="q-annotations-to-json,spin-native-annotate,$USER_GENERATED_PASSES_TO_RUN_PRESPLIT" "${USER_GENERATED_PASS_ARGS_PRESPLIT[@]}" "$ir_scheduled" -o "$ir_scheduled_user"
-            result="$?"
-            if [ ! "$result" -eq 0 ]; then
-                echo "Unexpected user pass error. Exiting..."
-                exit 1
-            fi
-        else
-            cp "$ir_scheduled" "$ir_scheduled_user"
-        fi
-
-        echo "Separating quantum IR..."
-        "$(OPT)" -S -load-pass-plugin "$(LIBRARY_LOCATION)"/libIntelQuantumIRPasses_shared.so ${QUEUEING:+"$QUEUEING"} -p="q-annotations-to-json,spin-native-annotate,spin-convert-to-imm,separate-and-replace-qbb" -q-config="$CONFIG_FILE" -q-sdk="$SDK_PATH" -forward-scheduling="$SCHED_METHOD_FR" -backward-scheduling="$SCHED_METHOD_BK" "$ir_scheduled_user" -o "$ir_separated"
-
-        result="$?"
-        if [ ! "$result" -eq 0 ]; then
-            echo "Unexpected error during QBB separation. Exiting..."
-            exit 1
-        fi
-
-        if [ "$PRINT_CIRCUIT_QBB" -eq 1 ]; then
-            echo "Printing quantum circuit diagrams after QBB separation..."
-            printerPass "$ir_separated" "separated" true
-        fi
-
-        if [ "$VERBOSE_MODE" -eq 1 ]; then
-            echo "Printing quantum circuit stats after QBB separation..."
-            "$(OPT)" -S -load-pass-plugin "$(LIBRARY_LOCATION)"/libIntelQuantumIRPasses_shared.so ${QUEUEING:+"$QUEUEING"} -p="q-annotations-to-json,spin-native-annotate,simple-qbit-placement,q-stats-print" -q-config="$CONFIG_FILE" -q-sdk="$SDK_PATH" "$ir_separated" -o "$ir_separated"
-            echo "$DECORATOR"
-        fi
-    else
-        cp "$ir_scheduled" "$ir_scheduled_user"
-        cp "$ir_scheduled_user" "$ir_separated"
+    if [ ! "$result" -eq 0 ]; then
+        echo "Unexpected compilation error. Exiting..."
+        exit 1
     fi
 
     ## Clean-up intermediate files
     if [ "$KEEP_FILES" -eq 0 ]; then
         rm "$ir_file"
-        rm "$ir_flattened"
-        rm "$ir_replaced"
-        rm "$ir_loop_unrolled"
-        rm "$ir_loop_unrolled_user"
-        rm "$ir_conditioned"
-        rm "$ir_conditioned_user"
-        rm "$ir_lowered"
-        rm "$ir_lowered_user"
-        rm "$ir_scheduled"
-        rm "$ir_scheduled_user"
-        rm "$ir_separated"
     fi
 }
 

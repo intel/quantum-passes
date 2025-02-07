@@ -139,8 +139,8 @@ INITIALIZE_PASS_END(SeparateAndReplaceQBBLegacyPass, "separate-and-replace-qbb",
 
 PreservedAnalyses SeparateAndReplaceQBBPass::run(Module &M,
                                                  ModuleAnalysisManager &MAM) {
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
   separateAndReplaceQBB(M, *QMP.QM);
 
-  return PreservedAnalyses::all();
+  return PreservedAnalyses::none();
 }

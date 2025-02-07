@@ -52,7 +52,7 @@ namespace llvm {
 class QuantumAnnotationsToJson {
 
 public:
-  static std::map<StringRef, json::Object> *qGateMetadata;
+  static std::map<std::string, json::Object> *qGateMetadata;
   static int num_custom_gates;
   static std::vector<std::string> PulseIntrinsicAnnotations;
   bool has_user_pulse_ = false;
@@ -75,7 +75,7 @@ public:
   bool is_qgate(CallInst *CI);
 
   /// Get qGateMatadata
-  std::map<StringRef, json::Object> *getQGateMetadata(Module *M) {
+  std::map<std::string, json::Object> *getQGateMetadata(Module *M) {
     return qGateMetadata;
   }
 
@@ -83,7 +83,7 @@ public:
   bool hasUserPulse() { return has_user_pulse_; }
 
   /// Get the QGateMedata objecct.
-  std::map<StringRef, json::Object> *getQGateMetadata() {
+  std::map<std::string, json::Object> *getQGateMetadata() {
     return qGateMetadata;
   }
 
@@ -155,7 +155,7 @@ public:
   static char ID;
   // TODO: implement this as an analysis pass so qGateMetadata
   // no longer has to be static.
-  static std::map<StringRef, json::Object> *qGateMetadata;
+  static std::map<std::string, json::Object> *qGateMetadata;
   QuantumModule &QM = QuantumCompilerLinkageLegacyPass::QM;
   QuantumAnnotationsToJson QAJ;
 
@@ -178,7 +178,7 @@ public:
   virtual bool doInitialization(Module &M) override;
 
   /// Get qGateMatadata
-  std::map<StringRef, json::Object> *getQGateMetadata(Module *M) {
+  std::map<std::string, json::Object> *getQGateMetadata(Module *M) {
     return QAJ.getQGateMetadata(M);
   }
 
@@ -186,7 +186,7 @@ public:
   bool hasUserPulse() { return QAJ.hasUserPulse(); }
 
   /// TODO:Why pass the Module?
-  std::map<StringRef, json::Object> *getQGateMetadata() {
+  std::map<std::string, json::Object> *getQGateMetadata() {
     return QAJ.getQGateMetadata();
   }
 
@@ -216,11 +216,11 @@ public:
     return QAJ;
   }
 
-  std::map<StringRef, json::Object> *getQGateMetadata(Module *M) {
+  std::map<std::string, json::Object> *getQGateMetadata(Module *M) {
     return QAJ.getQGateMetadata(M);
   }
 
-  std::map<StringRef, json::Object> *getQGateMetadata() {
+  std::map<std::string, json::Object> *getQGateMetadata() {
     return QAJ.getQGateMetadata();
   }
 

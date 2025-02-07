@@ -277,7 +277,7 @@ INITIALIZE_PASS_END(FinalizeQuantumCompilationLegacyPass,
 
 PreservedAnalyses
 FinalizeQuantumCompilationPass::run(Module &M, ModuleAnalysisManager &MAM) {
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
   finalizeQuantumCompilation(M, *QMP.QM);
 
   return PreservedAnalyses::all();

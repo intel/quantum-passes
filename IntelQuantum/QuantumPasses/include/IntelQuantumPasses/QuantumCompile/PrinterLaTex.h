@@ -21,7 +21,7 @@
 class PrinterLaTex : public Printer {
 public:
   // Constructor and destructor
-  PrinterLaTex(proofreader::ProofReader *read);
+  PrinterLaTex(proofreader::ProofReader *read, std::string comp_pos = "");
   PrinterLaTex() = delete;
   ~PrinterLaTex() = default;
 
@@ -30,6 +30,7 @@ public:
 
 private:
   proofreader::ProofReader *reader;
+  std::string comp_pos = "";
 
   /// Insert the column to show qubit names
   void insertQubitNames(std::vector<std::string> &str_vec,

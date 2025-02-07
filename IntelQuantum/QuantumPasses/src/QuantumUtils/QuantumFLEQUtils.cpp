@@ -921,22 +921,26 @@ Value *validateQExpr(Function *F) {
   if (F->isVarArg())
     return nullptr;
 
-  // use SCCIterator to get the last SCC to get the return
+  // use SCCIterator to go through blocks and verify a single return
 
-  auto ret_scc = scc_begin(F);
-
-  if (ret_scc->size() != 1)
-    return nullptr;
-
-  BasicBlock *ret_block = ret_scc->front();
-  Instruction *term = ret_block->getTerminator();
-  if (ReturnInst *ret = dyn_cast<ReturnInst>(term)) {
-    // move the return block to the end
-    ret_block->moveBefore(F->end());
-    return ret->getReturnValue();
+  Value *out = nullptr;
+  for (auto scc = scc_begin(F), end = scc_end(F); scc != end; ++scc) {
+    for (BasicBlock *ret_block : *scc) {
+      Instruction *term = ret_block->getTerminator();
+      if (ReturnInst *ret = dyn_cast<ReturnInst>(term)) {
+        if (out) {
+          // two returns found
+          out = nullptr;
+          break;
+        }
+        // move the return block to the end
+        ret_block->moveBefore(F->end());
+        out = ret->getReturnValue();
+      }
+    }
   }
 
-  return nullptr;
+  return out;
 }
 
 // Helper for checking for BuiltinOnly function
@@ -996,7 +1000,9 @@ bool replaceQbitWithSimplified(User *val, Instruction *I, bool is_after) {
 
 Value *addQbitCall(Instruction *I, QbitRef to_add, bool is_after, bool as_ptr) {
   QIter dummy;
-  return dummy.add_qbit_call(I, to_add, is_after, as_ptr);
+  Value *Out = dummy.add_qbit_call(I, to_add, is_after, as_ptr);
+  dummy.updateGateDependencies();
+  return Out;
 }
 
 CallBase *isIQCAlloca(const QbitRef &q) {

@@ -31,7 +31,6 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
-
 #include <cassert>
 #include <cmath>   // std::sqrt, std::pow
 #include <complex> // std::conj
@@ -50,9 +49,9 @@ namespace llvm {
 
 char QuantumAnnotationsToJsonLegacyPass::ID = 0;
 
-std::map<StringRef, json::Object> *QuantumAnnotationsToJson::qGateMetadata =
+std::map<std::string, json::Object> *QuantumAnnotationsToJson::qGateMetadata =
     nullptr;
-std::map<StringRef, json::Object>
+std::map<std::string, json::Object>
     *QuantumAnnotationsToJsonLegacyPass::qGateMetadata = nullptr;
 
 int QuantumAnnotationsToJson::num_custom_gates = 0;
@@ -70,7 +69,8 @@ std::vector<std::string> QuantumAnnotationsToJson::PulseIntrinsicAnnotations = {
     		\"parametric_list\" : [0], \
     		\"control_qubit_list\" : [], \
     		\"local_basis_list\" : [0, 0, 0], \
-    		\"identifier\" : " + std::to_string(kStartPulse) + " \
+    		\"identifier\" : " +
+        std::to_string(kStartPulse) + " \
   		}",
     "{ \
     		\"matrix_real\" : \"DirectPulse\", \
@@ -84,7 +84,8 @@ std::vector<std::string> QuantumAnnotationsToJson::PulseIntrinsicAnnotations = {
     		\"parametric_list\" : [0], \
     		\"control_qubit_list\" : [], \
     		\"local_basis_list\" : [], \
-    		\"identifier\" : " + std::to_string(kDirectPulse) + " \
+    		\"identifier\" : " +
+        std::to_string(kDirectPulse) + " \
   		}",
     "{ \
     		\"matrix_real\" : \"BarrierPulse\", \
@@ -98,8 +99,8 @@ std::vector<std::string> QuantumAnnotationsToJson::PulseIntrinsicAnnotations = {
     		\"parametric_list\" : [0], \
     		\"control_qubit_list\" : [], \
     		\"local_basis_list\" : [0, 0, 0], \
-    		\"identifier\" : " + std::to_string(kBarrierPulse) +
-                                                                   " \
+    		\"identifier\" : " +
+        std::to_string(kBarrierPulse) + " \
   		}"};
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -142,7 +143,7 @@ void QuantumAnnotationsToJson::locateAndAddAnnotatedFunctions(Module *M) {
         if (User *first_elem = dyn_cast<User>(CS->getOperand(0))) {
           // Check for undef and return
           if ((dyn_cast<UndefValue>(first_elem)))
-            return;
+            continue;
           // this first element should be a bitcast of a function pointer
           // get the function it points to
           Function *F = dyn_cast<Function>(first_elem);
@@ -734,7 +735,7 @@ bool QuantumAnnotationsToJson::verifyAndCategorizeQuantumFunctions(Module &M) {
     bool start_found = false, pulse_found = false, barrier_found = true;
     unsigned qbit_args = 0, para_args = 0;
 
-    if (qGateMetadata->find(F.getName()) != qGateMetadata->end()) {
+    if (qGateMetadata->find(F.getName().str()) != qGateMetadata->end()) {
 
       for (auto iter = inst_begin(F); iter != inst_end(F); ++iter) {
         CallInst *CI = dyn_cast<CallInst>(&*iter);
@@ -749,6 +750,15 @@ bool QuantumAnnotationsToJson::verifyAndCategorizeQuantumFunctions(Module &M) {
               para_args++;
               q_intr = true;
             } else if (Name == "llvm.quantum.cbit") {
+              para_args++;
+              q_intr = true;
+            } else if (Name == "_Z15__quantum_qubitPt") {
+              qbit_args++;
+              q_intr = true;
+            } else if (Name == "_Z15__quantum_paramd") {
+              para_args++;
+              q_intr = true;
+            } else if (Name == "_Z14__quantum_cbitPb") {
               para_args++;
               q_intr = true;
             } else if (Name == "llvm.quantum.pulse.sequence.start") {
@@ -773,7 +783,7 @@ bool QuantumAnnotationsToJson::verifyAndCategorizeQuantumFunctions(Module &M) {
 
       // check the number of qubit and parameteric operands
 
-      json::Object *O = &(qGateMetadata->at(F.getName()));
+      json::Object *O = &(qGateMetadata->at(F.getName().str()));
 
       if (json::Array *arr = O->getArray("qubit_list")) {
         valid = (arr->size() == qbit_args);
@@ -811,9 +821,9 @@ bool QuantumAnnotationsToJson::verifyAndCategorizeQuantumFunctions(Module &M) {
         else {
           errs() << "AnnotationsToJson Warning: found annotated function "
                  << F.getName()
-                 << "  with no quantum instrisnics calls: it has been removed "
+                 << "  with no quantum intrinsics calls: it has been removed "
                     "from list of available gates...\n";
-          qGateMetadata->erase(F.getName());
+          qGateMetadata->erase(F.getName().str());
         }
 
       } else {
@@ -859,7 +869,7 @@ INITIALIZE_PASS_END(QuantumAnnotationsToJsonWrapperPass, "q-annotate-json-wrap",
 
 PreservedAnalyses QuantumAnnotationsToJsonPass::run(Module &M,
                                                     ModuleAnalysisManager &AM) {
-  QuantumModuleProxy QMP = AM.getResult<QuantumCompilerLinkageAnalysis>(M);
+  QuantumModuleProxy &QMP = AM.getResult<QuantumCompilerLinkageAnalysis>(M);
   QAJ.doInitialization(M, *QMP.QM);
   updateCompilerLinkage(M, *QMP.QM);
   return PreservedAnalyses::all();

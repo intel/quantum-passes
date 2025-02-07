@@ -90,10 +90,6 @@ public:
   QbitRef(){};
 
   /// constructor for new QbitRef with no index
-  /// inst_iterator must be an AllocaInst
-  QbitRef(inst_iterator);
-
-  /// constructor for new QbitRef with no index
   /// global_iterator must be an Global qbit allocation
   QbitRef(Module::global_iterator);
 
@@ -103,7 +99,7 @@ public:
 
   /// constructor for a new QbitRef with constant index
   /// inst_iterator must point to an allocation instruction
-  QbitRef(inst_iterator, unsigned);
+  QbitRef(Instruction *, unsigned);
 
   /// constructor for a new QbitRef with constant index
   /// global_iterator must point to a Global qubit allocation
@@ -120,7 +116,7 @@ public:
   /// inst_iterator must point to an AllocaInst
   /// Value* must point at a load or ConstantInt type
   /// This ctor checks if Value* is owned by QbitRef or some other function
-  QbitRef(inst_iterator, Value *);
+  QbitRef(Instruction *, Value *);
 
   /// constructor for a new QbitRef with unresolved index
   /// global_iterator must point to a Global qbit allocation
@@ -197,13 +193,19 @@ public:
   /// Returns if input has the same qubit allocation pointer
   bool isInRegister(QbitRef &) const;
 
+  // Creates LLVM based value object for the QbitRef. If applicable, it inserts
+  /// it after the given instruction if is_after is true, and before if is_after
+  /// is false.
+  Value *createValue(Instruction *instr, bool is_after, bool isQbitPtr,
+                     QIter *QIt = nullptr);
+
   /// returns if two QbitRefs represent the same qubit
   /// If both QbitRefs can be currently resolved (uses tryToSimplify i.e. does
   /// not mutate), it will check to see if the indices are equal in value. If
   /// either is not resolved, it will check to see if value can be traced back
   /// to same integer allocation with no possible store inbetween. If the qubits
   /// can not be confirmed to be equal or unequal, the function returns -1.
-  int isEqual(QbitRef &);
+  int isEqual(const QbitRef &q) const;
 
   // Following returns which type of qubit allocations it is
   bool isLocalAlloc() const;
@@ -227,7 +229,7 @@ public:
   /// sets register
 
   /// inst_iterator must be a allocation instruction or QbitRef is set to Null
-  void setRegister(inst_iterator);
+  // void setRegister(Instruction *);
 
   /// global_iterator must be a Global qbit allocatio or QbitRef is set to Null
   void setRegister(Module::global_iterator);
@@ -507,7 +509,7 @@ public:
   ParaRef() = default;
 
   /// Constructor from instruction iterator
-  ParaRef(inst_iterator);
+  // ParaRef(Instruction *);
 
   /// Constructor from Value
   ParaRef(Value *);
@@ -640,9 +642,6 @@ public:
     setValueResolved(val);
     return *this;
   }
-
-  /// Set value to that represented by inst_iterator
-  void setValue(inst_iterator);
 
   /// Set value to desired value
   void setValue(Value *);

@@ -226,7 +226,8 @@ static void spinNativeConvertToIMM(Module &M, QuantumModule &QM) {
 
   for (auto &QK : QM) {
     for (auto &QBB : QK) {
-      for (QBBIter qit(QBB); !qit.isEnd(); ++qit) {
+      QBBIter qit(QBB);
+      for (; !qit.isEnd(); ++qit) {
 
         // set max to reserved value
         QM.QSDA_used_map[&QBB] =
@@ -244,7 +245,7 @@ static void spinNativeConvertToIMM(Module &M, QuantumModule &QM) {
             qit.removeGate();
             paras[0] = getAsQSDAIndex(QM, paras[0], &QBB);
             paras[1] = getAsQSDAIndex(QM, paras[1], &QBB);
-            qit.insertGate(kSpinRotXY_IMM_IDX, qubits, paras);
+            qit.insertGate(kSpinRotXY_IMM_IDX, qubits, paras, false);
             break;
           }
         }
@@ -258,7 +259,8 @@ static void spinNativeConvertToIMM(Module &M, QuantumModule &QM) {
             std::vector<QbitRef> qubits = qit.getQubitOperands();
             qit.removeGate();
             paras[0] = getAsQSDAIndex(QM, paras[0], &QBB);
-            qit.insertGate(getIMM_IDXVersionForSpinNative(id), qubits, paras);
+            qit.insertGate(getIMM_IDXVersionForSpinNative(id), qubits, paras,
+                           false);
             break;
           }
         }
@@ -275,7 +277,7 @@ static void spinNativeConvertToIMM(Module &M, QuantumModule &QM) {
             Nparas[1] = paras[2]; // slice
             // we do an insert instead of a changGate
             qit.removeGate();
-            qit.insertGate(kSpinMeasZ_IMM_IDX, qubits, Nparas);
+            qit.insertGate(kSpinMeasZ_IMM_IDX, qubits, Nparas, false);
             break;
           }
         }
@@ -314,6 +316,7 @@ static void spinNativeConvertToIMM(Module &M, QuantumModule &QM) {
                               "the current measurement return method: " +
                                   std::to_string(maybe_qid));
       }
+      qit.updateGateDependencies();
     };
   };
 }
@@ -359,7 +362,7 @@ INITIALIZE_PASS_END(SpinNativeConvertToIMMLegacyPass, "spin-convert-to-imm",
 
 PreservedAnalyses SpinNativeConvertToIMMPass::run(Module &M,
                                                   ModuleAnalysisManager &MAM) {
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
   spinNativeConvertToIMM(M, *QMP.QM);
 
   return PreservedAnalyses::all();

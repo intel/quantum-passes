@@ -32,7 +32,11 @@ namespace llvm {
 namespace aqcc {
 
 class PrintCircuitQBBPass : public PassInfoMixin<PrintCircuitQBBPass> {
+private:
+  std::string comp_pos = "";
+
 public:
+  PrintCircuitQBBPass(std::string position = "") { comp_pos = position; }
   PreservedAnalyses run(Module &M, ModuleAnalysisManager &MAM);
 };
 

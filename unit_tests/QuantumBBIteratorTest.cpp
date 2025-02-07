@@ -183,9 +183,9 @@ TEST_F(QuantumBBIteratorTest, BeginEndTest) {
       ++bb_iter;
       QBBIter qbb3(*bb_iter);
 
-      inst_iterator end = qbb3.getGateInstIterator();
+      Instruction *end = qbb3.getGateInstIterator();
 
-      EXPECT_TRUE(&*end == bb_iter->getTerminator());
+      EXPECT_TRUE(end == bb_iter->getTerminator());
     }
   };
 

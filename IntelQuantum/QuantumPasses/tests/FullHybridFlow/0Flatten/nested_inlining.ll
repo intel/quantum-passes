@@ -393,7 +393,7 @@ entry:
 ; Function Attrs: mustprogress noinline uwtable
 define dso_local void @_Z3RZZRtS_d.stub(ptr noundef nonnull align 2 dereferenceable(2) "qubit_ref" %q1, ptr noundef nonnull align 2 dereferenceable(2) "qubit_ref" %q2, double noundef %a) local_unnamed_addr #0 section ".qbbs_text" {
 ; CHECK-LABEL: define dso_local void @_Z3RZZRtS_d.stub
-; CHECK-SAME: (ptr noundef nonnull align 2 dereferenceable(2) "qubit_ref" [[Q1:%.*]], ptr noundef nonnull align 2 dereferenceable(2) "qubit_ref" [[Q2:%.*]], double noundef [[A:%.*]]) local_unnamed_addr #[[ATTR0]] section ".qbbs_text" {
+; CHECK-SAME: (ptr noundef nonnull align 2 dereferenceable(2) "qubit_ref" [[Q1:%.*]], ptr noundef nonnull align 2 dereferenceable(2) "qubit_ref" [[Q2:%.*]], double noundef [[A:%.*]]) local_unnamed_addr #[[ATTR1:[0-9]*]] section ".qbbs_text" {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    tail call void @_Z4CNOTRtS_(ptr noundef nonnull align 2 dereferenceable(2) [[Q1]], ptr noundef nonnull align 2 dereferenceable(2) [[Q2]])
 ; CHECK-NEXT:    tail call void @_Z2RZRtd(ptr noundef nonnull align 2 dereferenceable(2) [[Q2]], double noundef [[A]])
@@ -410,7 +410,7 @@ entry:
 ; Function Attrs: mustprogress noinline uwtable
 define dso_local void @_Z5IsingPtd.stub(ptr noundef nonnull "qubit_ref" %qs, double noundef %a) local_unnamed_addr #0 section ".qbbs_text" {
 ; CHECK-LABEL: define dso_local void @_Z5IsingPtd.stub
-; CHECK-SAME: (ptr noundef nonnull "qubit_ref" [[QS:%.*]], double noundef [[A:%.*]]) local_unnamed_addr #[[ATTR0]] section ".qbbs_text" {
+; CHECK-SAME: (ptr noundef nonnull "qubit_ref" [[QS:%.*]], double noundef [[A:%.*]]) local_unnamed_addr #[[ATTR1]] section ".qbbs_text" {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[ARRAYIDX1:%.*]] = getelementptr inbounds i16, ptr [[QS]], i64 1
 ; CHECK-NEXT:    tail call void @_Z4CNOTRtS_(ptr noundef nonnull align 2 dereferenceable(2) [[QS]], ptr noundef nonnull align 2 dereferenceable(2) [[ARRAYIDX1]])
@@ -437,7 +437,7 @@ entry:
 ; Function Attrs: mustprogress noinline uwtable
 define dso_local void @_Z8MeasureHPtRd.stub(ptr noundef nonnull "qubit_ref" %qs, ptr nocapture noundef nonnull writeonly align 8 dereferenceable(8) %E) local_unnamed_addr #0 section ".qbbs_text" {
 ; CHECK-LABEL: define dso_local void @_Z8MeasureHPtRd.stub
-; CHECK-SAME: (ptr noundef nonnull "qubit_ref" [[QS:%.*]], ptr nocapture noundef nonnull writeonly align 8 dereferenceable(8) [[E:%.*]]) local_unnamed_addr #[[ATTR0]] section ".qbbs_text" {
+; CHECK-SAME: (ptr noundef nonnull "qubit_ref" [[QS:%.*]], ptr nocapture noundef nonnull writeonly align 8 dereferenceable(8) [[E:%.*]]) local_unnamed_addr #[[ATTR1]] section ".qbbs_text" {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[C:%.*]] = alloca [3 x i8], align 1
 ; CHECK-NEXT:    call void @llvm.lifetime.start.p0(i64 3, ptr nonnull [[C]]) #[[ATTR5:[0-9]+]]

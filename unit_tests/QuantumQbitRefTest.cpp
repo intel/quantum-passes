@@ -152,14 +152,14 @@ TEST(QbitRefTest, CtorSetterTest) {
 
       // construct on different qubit types
       inst_iterator iter = inst_begin(F);
-      QbitRef qref0(iter);
+      QbitRef qref0(&*iter);
       ++iter;
-      QbitRef qref1(iter);
+      QbitRef qref1(&*iter);
       ++iter;
       ++iter;
-      QbitRef qref2(iter);
+      QbitRef qref2(&*iter);
       ++iter;
-      QbitRef qref3(iter);
+      QbitRef qref3(&*iter);
 
       // for arguments
       Value *arg0 = dyn_cast<Value>(F.getArg(0));

@@ -70,3 +70,35 @@ This pass simply takes the quantum functions made in the separation path and spl
 
 ### Finalize Compilation
 This final step before code generation ensures that all of the needed pieces are included for code generation and linking.  This entails adding the needed Quantum Runtime calls, and ensuring that the references to global shared arrays are resolved for the Quantum Runtime when running in the quantum and classical environments.
+
+## Analysis Passes
+Many quantum passes require analysis in order to perform any sort of operations.  These mainly relate to interpreting the `QuantumModule` and the JSON annotations that are included with the IR generation and function declarations.
+
+### Quantum Compiler Linkage and Quantum Module
+The QuantumCompilerLinkage pass is the utility that iterates over the IR file, and collects information about the QuantumModule, including the gates and what state of compilation the quantum module is in.  This is implemented as an Analysis pass, similar to the `CallGraph` Pass or `TargetTransformInfo` based passes in the main LLVM repository.  In the `run` method of a pass if the following block is noted:
+
+``
+QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
+runPass(M, *QMP.QM);
+``
+
+There is a pointer to the `QuantumModule` in the proxy output from the `QuantumCompilerLinkageAnalysis` It will give your pass access to the `QuantumModule` and will automatically run the QuantumCompilerLinkage pass as well, without needing to denote it on the command line.
+
+### Quantum Annotations to JSON
+Included in the header file is statistics, identification, and information about the canonical gates used in the intial compilation.  This enables the `QIter` class to recognize and use these gates.  In order to have tracking information and recognize certain operations as quantum operations in these structure, this pass must be run to put the information in quantum module so it can be referenced later on.
+
+### Spin Native Annotations to JSON
+This pass does the same as the Quantum Annotations to JSON, but for the spin native set of gates.  The information for this is included in the pass and is structured slightly differently.
+
+## Architecture of the Quantum Optimization Driver
+The `quantum-optimization-driver` uses several instances of the LLVM Pass Manager to implement quantum optimizations, unrolling, validating and restructuring the program of the quantum programs. A diagram detailing this process can be found below:
+
+ ![Pass Manager Flow](./images/pass-manager-flow.png)
+
+There are four different pass managers.  The first handles the initial preprocessing and flattening steps of the quantum module. This handles the inlining of the quantum kernels into the top level kernels of the program.  This is a Module Pass Manager, and analyzes the entirety of the module at once. It also replaces the quantum intrinsics, and denotes which function arguments should be treated as qubits.
+
+The second is a set of function passes and module passes unroll and unfold branches inside of a quantum kernel. This set of passes is only run on functions with QExprs and quantum kernels, reducing overall optimization time. Additionally, loop unrolling is only performed on loops that contain quantum operations. During this step, a function pass manager handles loop unrolling and constant folding that is modelled on the function simplification for 01 pipeline in LLVM.  This manager is run on each quantum kernel if it is not a valid quantum kernel.  Then, there is a module pass that cleans up dead code from these steps. This is repeated several times, until all denoted quantum kernels matches the conditions for a quantum kernel, or an attempt limit is exceeded.  This is configurable through the quantum optimization driver.
+
+After loop unrolling, there is a final pass manager that handles most of the quantum optimizations.  This includes all passes from the validation step to separation of the quantum kernels from the classical components of the program.  If specified, 
+
+The Quantum Compiler Linkage Analysis pass is run by default when the Quantum Module is requested, and runs the Quantum Annotations to JSON Passes initialization when needed.  The Quantum Module that is returned by the Quantum Compiler Linkage pass is invalidated when passes remove or add quantum basic blocks. In these cases, it will be rerun to establish the correct initial placement for these blocks.

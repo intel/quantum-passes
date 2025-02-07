@@ -394,7 +394,7 @@ entry:
 ; Function Attrs: mustprogress noinline uwtable
 define dso_local void @_Z19passQubitArrayByPtrPti.stub(ptr noundef "qubit_ref" %qubit_vec, i32 noundef %num_ele) local_unnamed_addr #0 section ".qbbs_text" {
 ; CHECK-LABEL: define dso_local void @_Z19passQubitArrayByPtrPti.stub
-; CHECK-SAME: (ptr noundef "qubit_ref" [[QUBIT_VEC:%.*]], i32 noundef [[NUM_ELE:%.*]]) local_unnamed_addr #[[ATTR0]] section ".qbbs_text" {
+; CHECK-SAME: (ptr noundef "qubit_ref" [[QUBIT_VEC:%.*]], i32 noundef [[NUM_ELE:%.*]]) local_unnamed_addr #[[ATTR1:[0-9]+]] section ".qbbs_text" {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[CMP3:%.*]] = icmp sgt i32 [[NUM_ELE]], 0
 ; CHECK-NEXT:    br i1 [[CMP3]], label [[FOR_BODY_PREHEADER:%.*]], label [[FOR_COND_CLEANUP:%.*]]
@@ -440,7 +440,7 @@ declare void @llvm.lifetime.end.p0(i64 immarg, ptr nocapture) #1
 ; Function Attrs: mustprogress noinline uwtable
 define dso_local void @_Z20passQubitArrayByPtr2Pti.stub(ptr noundef "qubit_ref" %qubit_vec, i32 noundef %num_ele) local_unnamed_addr #0 section ".qbbs_text" {
 ; CHECK-LABEL: define dso_local void @_Z20passQubitArrayByPtr2Pti.stub
-; CHECK-SAME: (ptr noundef "qubit_ref" [[QUBIT_VEC:%.*]], i32 noundef [[NUM_ELE:%.*]]) local_unnamed_addr #[[ATTR0]] section ".qbbs_text" {
+; CHECK-SAME: (ptr noundef "qubit_ref" [[QUBIT_VEC:%.*]], i32 noundef [[NUM_ELE:%.*]]) local_unnamed_addr #[[ATTR1]] section ".qbbs_text" {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[CMP3:%.*]] = icmp sgt i32 [[NUM_ELE]], 0
 ; CHECK-NEXT:    br i1 [[CMP3]], label [[FOR_BODY_PREHEADER:%.*]], label [[FOR_COND_CLEANUP:%.*]]
@@ -480,7 +480,7 @@ for.body:                                         ; preds = %for.body, %for.body
 ; Function Attrs: mustprogress noinline uwtable
 define dso_local void @_Z14passQubitByRefRt.stub(ptr noundef nonnull align 2 dereferenceable(2) "qubit_ref" %q) local_unnamed_addr #0 section ".qbbs_text" {
 ; CHECK-LABEL: define dso_local void @_Z14passQubitByRefRt.stub
-; CHECK-SAME: (ptr noundef nonnull align 2 dereferenceable(2) "qubit_ref" [[Q:%.*]]) local_unnamed_addr #[[ATTR0]] section ".qbbs_text" {
+; CHECK-SAME: (ptr noundef nonnull align 2 dereferenceable(2) "qubit_ref" [[Q:%.*]]) local_unnamed_addr #[[ATTR1]] section ".qbbs_text" {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    tail call void @_Z1ZRt(ptr noundef nonnull align 2 dereferenceable(2) [[Q]])
 ; CHECK-NEXT:    ret void
@@ -493,7 +493,7 @@ entry:
 ; Function Attrs: mustprogress noinline uwtable
 define dso_local void @_Z18passInShortByValues.stub(i16 signext %num) local_unnamed_addr #0 section ".qbbs_text" {
 ; CHECK-LABEL: define dso_local void @_Z18passInShortByValues.stub
-; CHECK-SAME: (i16 signext [[NUM:%.*]]) local_unnamed_addr #[[ATTR0]] section ".qbbs_text" {
+; CHECK-SAME: (i16 signext [[NUM:%.*]]) local_unnamed_addr #[[ATTR1]] section ".qbbs_text" {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[Q:%.*]] = alloca i16, align 2
 ; CHECK-NEXT:    call void @llvm.lifetime.start.p0(i64 2, ptr nonnull [[Q]]) #[[ATTR3:[0-9]+]]
@@ -512,7 +512,7 @@ entry:
 ; Function Attrs: mustprogress noinline uwtable
 define dso_local void @_Z11nested_callv.stub() local_unnamed_addr #0 section ".qbbs_text" {
 ; CHECK-LABEL: define dso_local void @_Z11nested_callv.stub
-; CHECK-SAME: () local_unnamed_addr #[[ATTR0]] section ".qbbs_text" {
+; CHECK-SAME: () local_unnamed_addr #[[ATTR1:[0-9]+]] section ".qbbs_text" {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[Q:%.*]] = alloca i16, align 2
 ; CHECK-NEXT:    call void @llvm.lifetime.start.p0(i64 2, ptr nonnull [[Q]]) #[[ATTR3]]

@@ -42,7 +42,7 @@ class PrintAllGatesExamplePass
     : public PassInfoMixin<PrintAllGatesExamplePass> {
 public:
   PreservedAnalyses run(Module &M, ModuleAnalysisManager &MAM) {
-    llvm::aqcc::QuantumModuleProxy QMP =
+    llvm::aqcc::QuantumModuleProxy &QMP =
         MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
     errs() << "Running Example Pass, using \"" << ExampleCommandLineOpt
            << "\" as the command line argument.\n";
@@ -66,6 +66,7 @@ llvm::PassPluginLibraryInfo getExampleSinglePassPluginInfo() {
                     MPM.addPass(PrintAllGatesExamplePass());
                     return true;
                   }
+                  return false;
                 });
           }};
 }

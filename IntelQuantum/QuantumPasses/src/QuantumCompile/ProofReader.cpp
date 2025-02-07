@@ -354,11 +354,6 @@ void ProofReader::sortByTopologicalOrder(
       if (parents[child] == 0) {
         next_layer.push_back(child);
       }
-      if (parents[child] < 0) {
-        std::cout
-            << "Something is wrong. Cannot have negative num of parents \n";
-        return;
-      }
     }
 
     if (ready_to_print.size() == 0) {

@@ -52,13 +52,13 @@ while getopts "hf:s:p:o:a:e:E:b:B:T:L:i:R:l:" opt; do
     esac
 done
 
-# Generate intermediate files as far as we can though the compilation process
-${runner_script} -k -b ${binary_folder} $original_file
 filename=$(basename -- "$original_file")
 extension="${filename##*.}"
 filename="${filename%.*}"
-output_ll=${filename}$compilation_append
-output_ll_2=${filename}${compilation_append}_temp
+output_ll=${filename}_${compilation_append}.ll
+output_ll_2=${filename}_${compilation_append}_temp
+# Generate intermediate files as far as we can though the compilation process
+${runner_script} -k -d EO -T ${tall_pine_lake} -b ${binary_folder} -Z $compilation_append -o $output_ll $original_file
 
 # If we need a custom passes flow, run that here
 if [ "${extra_passes_run}" != "" ]; then

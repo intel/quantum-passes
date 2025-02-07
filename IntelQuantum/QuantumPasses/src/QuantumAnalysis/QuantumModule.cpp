@@ -14,6 +14,7 @@
 #include "IntelQuantumPasses/QuantumUtils/QuantumGeneralUtils.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/AsmParser/Parser.h"
+#include "llvm/Demangle/Demangle.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include <cmath> // std::ceil
@@ -22,6 +23,8 @@
 
 namespace llvm {
 namespace aqcc {
+
+std::shared_ptr<QuantumModule> QuantumModuleProxy::QM;
 
 std::string getParentDirectory(const std::string &full_path) {
   char separator = '/';
@@ -44,6 +47,18 @@ QuantumModule::QuantumModule(const std::string &filename,
   initializeData(*base);
 }
 
+std::string truncateName(std::string &FullName) {
+  size_t SpaceLoc = FullName.find(" ");
+  size_t ParenLoc = FullName.find("(");
+  ;
+  if (SpaceLoc > ParenLoc || SpaceLoc == std::string::npos) {
+    SpaceLoc = 0;
+  } else {
+    SpaceLoc += 1;
+  }
+  return FullName.substr(SpaceLoc, ParenLoc - SpaceLoc);
+}
+
 void QuantumModule::initializeData(Module &M) {
 
   // populate quantum kernels
@@ -54,9 +69,17 @@ void QuantumModule::initializeData(Module &M) {
   }
 
   for (auto &F : M) {
+    if (q_gate_metadata.find(F.getName().str()) != q_gate_metadata.end()) {
+      std::string FullName = llvm::demangle(F.getName().str());
+      std::string TruncName = truncateName(FullName);
+      HumanNameToFunction.insert(std::make_pair(TruncName, &F));
+    }
     if (FunctionAsKernels.find(&F) == FunctionAsKernels.end()) {
-      if (isQKernel(F)) {
+      if (isQKernel(F) || isQBBSText(F)) {
         q_kernel_list.push_back(QuantumKernel(F));
+        std::string FullName = llvm::demangle(F.getName().str());
+        std::string TruncName = truncateName(FullName);
+        HumanNameToFunction.insert(std::make_pair(TruncName, &F));
       }
 
       // Because FLEQ can turn any function into a QK (if it has a fixing call)
@@ -218,6 +241,28 @@ QuantumKernel::QuantumKernel(Function &F, bool check) : qk_(&F) {
     }
   else
     first_ = qk_->end();
+}
+
+QuantumKernel::iterator QuantumKernel::begin() {
+  Function::iterator temp = qk_->begin();
+  while (temp != qk_->end()) {
+    if (isQBasicBlock(*temp)) {
+      break;
+    }
+    ++temp;
+  }
+  return iterator(temp, qk_);
+}
+
+QuantumKernel::iterator QuantumKernel::begin() const {
+  Function::iterator temp = qk_->begin();
+  while (temp != qk_->end()) {
+    if (isQBasicBlock(*temp)) {
+      break;
+    }
+    ++temp;
+  }
+  return iterator(temp, qk_);
 }
 
 QuantumKernel::iterator QuantumKernel::iterator::operator++() {

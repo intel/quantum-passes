@@ -68,6 +68,11 @@ static cl::opt<std::string>
                              cl::desc("Backward-scheduling method"),
                              cl::init("retrace"));
 
+static cl::opt<bool>
+    CanonicalScheduling("canonical-schedule",
+                        cl::desc("Schedule with any 2 qubit gate."),
+                        cl::init(false));
+
 //////////////////////////////////////////////////////////////////////
 
 struct SchedulerLegacyPass : public ModulePass {
@@ -136,6 +141,7 @@ void QuantumScheduler::readCommandLineOptions(QuantumModule &QM) {
     this->setForwardSchedulingMethodAndSerializeOption(ForwardSchedulingMethod);
     this->setBackwardSchedulingMethod(BackwardSchedulingMethod);
   }
+  this->setCanonicalScheduling(CanonicalScheduling);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -166,6 +172,9 @@ void QuantumScheduler::runImpl(Module &M, QuantumModule &QM) {
   // This is done here to avoid repeating it for every QBB.
   this->setupForSpecificBackwardSchedulingMethods(QM);
 
+  for (TPL::Gate &G : QM.platform->getGateList())
+    NativeGateNames.insert(G.opcode);
+
   // Looping on the quantum basic blocks (QBB).
   // INFO: The loop already exclude some functions like those defining
   //       quantum types and spin native gates.
@@ -176,7 +185,7 @@ void QuantumScheduler::runImpl(Module &M, QuantumModule &QM) {
 
     for (auto &QBB : QK) {
 
-      // Set intial qubit map (assumed realized at the beginning
+      // Set initial qubit map (assumed realized at the beginning
       // of the QBB) as indicated by the proper entry of:
       //   QM.qubit_maps
       // We already checked that the map exists.
@@ -275,6 +284,7 @@ void QuantumScheduler::runImpl(Module &M, QuantumModule &QM) {
 
         // TODO: validation not available in open-source repository.
         int verify = 1;
+
         LLVM_DEBUG(errs() << "Verifier is " << verify << ".\n");
 
         if (verify == 0)
@@ -291,12 +301,9 @@ void QuantumScheduler::runImpl(Module &M, QuantumModule &QM) {
               << "This may be due to the use of dynamic parameters which could "
                  "not be confirmed as equal; see debug info for details.\n";
 
-        if (serialize_)
-          setSerializedSlicing(QBB);
-        else
-          setSingleSliceBeginAndEnd(QBB);
-      } else if (serialize_)
-        setSerializedSlicing(QBB);
+        if (!serialize_)
+          setSingleSliceBeginAndEnd(QBB, CanonicalSchedule);
+      }
     }
   }
 } // runOnModule
@@ -350,7 +357,7 @@ void QuantumScheduler::setForwardSchedulingMethodAndSerializeOption(
     serialize_ = method.find("serial", none_idx) != std::string::npos;
   } else {
     std::string ErrMsg =
-        "Unknwon optimization method for the forward scheduling. "
+        "Unknown optimization method for the forward scheduling. "
         "Using default: " +
         forward_scheduling_method_;
     displayWarning(ErrMsg);
@@ -368,7 +375,7 @@ void QuantumScheduler::setBackwardSchedulingMethod(std::string method) {
   } else {
     backward_scheduling_method_ = "retrace";
     std::string ErrMsg =
-        "Unknwon optimization method for the backward scheduling. "
+        "Unknown optimization method for the backward scheduling. "
         "Using default: " +
         backward_scheduling_method_;
     displayWarning(ErrMsg);
@@ -463,6 +470,12 @@ void QuantumScheduler::setupForSpecificBackwardSchedulingMethods(
 
 //////////////////////////////////////////////////////////////////////
 
+void QuantumScheduler::setCanonicalScheduling(bool SetVal) {
+  CanonicalSchedule = SetVal;
+}
+
+//////////////////////////////////////////////////////////////////////
+
 int QuantumScheduler::populateTableFromQBB(BasicBlock &QBB, QuantumModule &QM) {
   // Start with a properly sized table (one component per physical qubit).
   table_.assign(num_phys_qubits_, {});
@@ -490,6 +503,17 @@ int QuantumScheduler::populateTableFromQBB(BasicBlock &QBB, QuantumModule &QM) {
     }
 
     int gate_id = getBaseVersionForSpinNative(qit.getIdentifier());
+    std::string temp_gate_name = GetNameFromGateIdentifier(gate_id);
+    // As a workaround for scheduling canonical gates, use a default operation
+    // instead that is defined in the config file.
+    if (CanonicalSchedule &&
+        (NativeGateNames.find(temp_gate_name) == NativeGateNames.end())) {
+      if (qubits.size() == 1)
+        gate_id = kSpinRotZ;
+      if (qubits.size() == 2)
+        gate_id = kSpinCPhase;
+    }
+
     // INFO: Since the platform config file does not uses the gate
     //       identifiers, we use the gate name.
     int gate_duration;
@@ -539,9 +563,10 @@ int QuantumScheduler::populateTableFromQBB(BasicBlock &QBB, QuantumModule &QM) {
           status = QM.updateShortestPathToAvailable1QubitGate(
               gate_id, q_start, path, phys_qubits_already_measured);
           phys_qubits_already_measured.push_back(path.back());
-        } else
+        } else {
           status = QM.updateShortestPathToAvailable1QubitGate(gate_id, q_start,
                                                               path);
+        }
 
         if (status != EXIT_SUCCESS) {
           std::string gate_name;
@@ -665,9 +690,20 @@ int QuantumScheduler::populateTableFromQBB(BasicBlock &QBB, QuantumModule &QM) {
       displayErrorAndExit("Scheduler",
                           "Inconsistent number of physical qubits");
     }
+    // If we are scheduling canonical gates, we replace the
+    // program qubits with the program qubit relating to the
+    // physical qubit at the start of the circuit. This lets
+    // us replace with the correct QID later on.
+    const std::vector<QbitRef> &idToProfQbitRef =
+        initial_qubit_map_.fromIdToProgQbitRef();
     for (unsigned i = 0; i < phys_qubits.size(); ++i) {
-      QbitRef qr(phys_qubits[i], C);
-      qubits[i] = qr;
+      if (CanonicalSchedule) {
+        qubits[i] =
+            idToProfQbitRef[initial_qubit_map_.getPhysToProg(phys_qubits[i])];
+      } else {
+        QbitRef qr(phys_qubits[i], C);
+        qubits[i] = qr;
+      }
     }
     qit.setQubitOperands(qubits);
 
@@ -748,7 +784,7 @@ int QuantumScheduler::extendTableWithRoutingBackToExpectedFinalQubitMap(
       qubit_map_.updateMapBySwappingPhysQubits(phys_q_source, phys_q_target);
     }
   }
-  // The appraches based on 1d sorting algorithms (here "bubble-sort" and
+  // The approaches based on 1d sorting algorithms (here "bubble-sort" and
   // "oddeven-sort") work well for linear connectivities.
   // Their implementation does not assume a trivial order of the physical
   // qubits along the line.
@@ -779,7 +815,7 @@ int QuantumScheduler::extendTableWithRoutingBackToExpectedFinalQubitMap(
     }
     num_prog_qubits_ = qubit_map_.getNumProgQubits();
     if (path.size() < num_prog_qubits_) {
-      ErrMsg = "path does not pass throgh all program qubits";
+      ErrMsg = "Path does not pass through all program qubits";
       displayErrorAndExit("Scheduler", ErrMsg);
     }
 
@@ -888,18 +924,36 @@ std::vector<int> QuantumScheduler::convertTableToSequence() const {
   std::vector<bool> was_routing_swap_already_added(routing_source_.size(),
                                                    false);
   std::vector<int> sequence;
+  std::vector<unsigned> Idxs(table_.size(), 0);
 
   int g_index;
-  int time = 0;
+  unsigned long time = 0;
   int counter = 1;
   while (counter > 0) {
     counter = 0;
+    unsigned long new_min_time = -1;
     for (int iq = 0; iq < table_.size(); ++iq) {
-      // Verify that schedule for the qubit is longer than 'time'
-      if (table_[iq].size() > time)
-        g_index = table_[iq][time];
-      else
+      if (Idxs[iq] >= table_[iq].size())
         continue;
+      // Verify that schedule for the qubit is longer than 'time'
+      bool Skip = true;
+      if (Idxs[iq] > 0) {
+        if (table_[iq][Idxs[iq] - 1].second <= time) {
+          g_index = table_[iq][Idxs[iq]].first;
+          Idxs[iq]++;
+          Skip = false;
+        }
+      } else if (Idxs[iq] == 0) {
+        g_index = table_[iq][Idxs[iq]].first;
+        Idxs[iq]++;
+        Skip = false;
+      }
+      if (Idxs[iq] < table_[iq].size())
+        if (new_min_time > table_[iq][Idxs[iq] - 1].second)
+          new_min_time = table_[iq][Idxs[iq] - 1].second;
+      if (Skip)
+        continue;
+
       ++counter;
       // Neglect idle and still-in-use qubits.
       if (g_index == is_idle_ || g_index == is_still_busy_)
@@ -917,7 +971,7 @@ std::vector<int> QuantumScheduler::convertTableToSequence() const {
         was_routing_swap_already_added[-g_index - 1] = true;
       }
     }
-    ++time;
+    time = new_min_time;
   }
 
   if (sequence.size() != num_gates_ + routing_source_.size()) {
@@ -960,7 +1014,10 @@ int QuantumScheduler::reorderGatesOfQuantumBasicBlock(BasicBlock &QBB) {
       qubits = qit_target.getQubitOperands();
       paras = qit_target.getParametricOperands();
       // set last operand to slice_mid
-      paras.back().setValueResolved(SLICE_MID);
+      // the canonical gates will not have an argument for the
+      // slice, so we omit it for now.
+      if (!CanonicalSchedule)
+        paras.back().setValueResolved(SLICE_MID);
       gate_id = qit_target.getIdentifier();
       ig_old = ig;
     }
@@ -1006,18 +1063,30 @@ int QuantumScheduler::reorderGatesOfQuantumBasicBlock(BasicBlock &QBB) {
 void QuantumScheduler::addGateToTable(std::vector<unsigned> phys_qubits,
                                       int gate_index, int gate_duration) {
   // Determine the time at which the gate starts.
-  unsigned start_time = 0;
+  unsigned long start_time = 0;
   for (const unsigned &phys_q : phys_qubits) {
-    unsigned occupied_time = table_[phys_q].size();
+    if (table_[phys_q].size() < 1)
+      continue;
+    unsigned long occupied_time = table_[phys_q].back().second;
     if (occupied_time > start_time)
       start_time = occupied_time;
   }
 
   // Extend schedule for 'less occupied' qubits and add gate.
   for (const unsigned &phys_q : phys_qubits) {
-    table_[phys_q].resize(start_time, is_idle_);
-    table_[phys_q].push_back(gate_index);
-    table_[phys_q].resize(start_time + gate_duration, is_still_busy_);
+    if ((start_time > 0 && table_[phys_q].size() == 0) ||
+        (table_[phys_q].size() > 0 &&
+         table_[phys_q].back().second < start_time)) {
+      unsigned long last_time = 0;
+      if (table_[phys_q].size() > 0)
+        last_time = table_[phys_q].back().second;
+      table_[phys_q].push_back(std::make_pair(is_idle_, start_time));
+    }
+    unsigned long last_time = 0;
+    if (table_[phys_q].size() > 0)
+      last_time = table_[phys_q].back().second;
+    table_[phys_q].push_back(
+        std::make_pair(gate_index, start_time + gate_duration));
   }
 } // addGateToTable
 
@@ -1029,12 +1098,12 @@ void QuantumScheduler::printTable() const {
     dbgs() << "q" << index_q << ":\t";
     for (auto &gate_index : table_[index_q]) {
       std::stringstream dbgstr;
-      if (gate_index == is_idle_)
+      if (gate_index.first == is_idle_)
         dbgstr << ".  ";
-      else if (gate_index == is_still_busy_)
+      else if (gate_index.first == is_still_busy_)
         dbgstr << "=  ";
       else
-        dbgstr << std::left << std::setw(3) << gate_index;
+        dbgstr << std::left << std::setw(3) << gate_index.first;
       dbgs() << dbgstr.str();
     }
     dbgs() << "\n";
@@ -1050,8 +1119,7 @@ INITIALIZE_PASS(SchedulerLegacyPass, "q-scheduler", "SchedulerLegacyPass",
 
 PreservedAnalyses SchedulerPass::run(Module &M, ModuleAnalysisManager &MAM) {
   QuantumScheduler QS;
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
-
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
   QS.readCommandLineOptions(*QMP.QM);
   QS.runImpl(M, *QMP.QM);
 

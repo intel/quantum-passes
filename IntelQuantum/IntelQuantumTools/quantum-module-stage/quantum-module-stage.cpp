@@ -48,7 +48,6 @@ int main(int argc, const char *argv[]) {
     Err.print(argv[0], errs());
     return -1;
   }
-
   // Intialize the module and determine the stage.
   QuantumCompilerLinkage QCL;
   QuantumSpinNativeToJson QSNJ;

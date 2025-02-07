@@ -392,7 +392,7 @@ entry:
 ; Function Attrs: mustprogress noinline uwtable
 define dso_local void @_Z18passInShortByValues.stub(i16 signext %num) local_unnamed_addr #0 section ".qbbs_text" {
 ; CHECK-LABEL: define dso_local void @_Z18passInShortByValues.stub
-; CHECK-SAME: (i16 signext [[NUM:%.*]]) local_unnamed_addr #[[ATTR0]] section ".qbbs_text" {
+; CHECK-SAME: (i16 signext [[NUM:%.*]]) local_unnamed_addr #[[ATTR1:[0-9]+]] section ".qbbs_text" {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[Q:%.*]] = alloca i16, align 2
 ; CHECK-NEXT:    call void @llvm.lifetime.start.p0(i64 2, ptr nonnull [[Q]]) #[[ATTR3:[0-9]+]]

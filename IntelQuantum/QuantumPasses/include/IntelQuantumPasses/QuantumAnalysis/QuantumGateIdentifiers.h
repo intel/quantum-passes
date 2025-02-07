@@ -126,12 +126,13 @@ enum GateIdentifier {
   kRZX = 51,
   kRZY = 52,
   kSWAPA = 53,
-  kNumGates = 54, // Number of gates including the identity
+  kISWAP = 57,
+  kNumGates = 58, // Number of gates including the identity
   // direct pulse intrinsics
-  kStartPulse = 55,
-  kDirectPulse = 56,
-  kReadPulse = 57,
-  kBarrierPulse = 58,
+  kStartPulse = 59,
+  kDirectPulse = 60,
+  kReadPulse = 61,
+  kBarrierPulse = 62,
   kSTILL,
 
   // Aliases
@@ -192,6 +193,8 @@ enum GateIdentifier {
   kSpinIMM_IDXEnd = kSpinMeasZ_IMM_IDX + 1
 
 };
+
+GateIdentifier getGateID(int n);
 
 int getInverseSQGateID(int id);
 

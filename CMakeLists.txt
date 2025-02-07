@@ -104,8 +104,7 @@ llvm_map_components_to_libnames(llvm_libs support core irreader demangle)
 # # Link against LLVM libraries
 # target_link_libraries(simple-tool ${llvm_libs})
 
-# # NOTE: 'C++14' is for LLVM v10.0; with v16.x the standard is 'C++17'
-set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard to conform to")
+set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to conform to")
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)

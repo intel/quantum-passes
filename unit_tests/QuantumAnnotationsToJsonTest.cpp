@@ -87,11 +87,11 @@ TEST(QuantumAnnotationsToJsonTest, BasicBuild) {
   QuantumModule QM;
   bool worked = P->doInitialization(*M, QM);
 
-  std::map<StringRef, json::Object> *data_ptr = P->getQGateMetadata(&(*M));
+  std::map<std::string, json::Object> *data_ptr = P->getQGateMetadata(&(*M));
 
   ASSERT_EQ(data_ptr->size(), GATE_TYPES);
 
-  for (std::map<StringRef, json::Object>::iterator it = data_ptr->begin();
+  for (std::map<std::string, json::Object>::iterator it = data_ptr->begin();
        it != data_ptr->end(); ++it) {
     errs() << "Gate Key : " << it->first << "\n";
   };
@@ -288,7 +288,7 @@ void TestGate(StringRef IRGateName, std::vector<double> expected_real,
               std::vector<int> expected_local_basis_list,
               int expected_identifier) {
 
-  std::map<StringRef, json::Object> *data_ptr =
+  std::map<std::string, json::Object> *data_ptr =
       QuantumAnnotationsToJson::qGateMetadata;
 
   unsigned cnt = 0;
@@ -298,8 +298,8 @@ void TestGate(StringRef IRGateName, std::vector<double> expected_real,
     ASSERT_TRUE(false);
   };
 
-  std::map<StringRef, json::Object>::iterator entry =
-      data_ptr->find(IRGateName);
+  std::map<std::string, json::Object>::iterator entry =
+      data_ptr->find(IRGateName.str());
 
   if (entry == data_ptr->end()) {
     errs() << "Didn't find " << IRGateName << " in the QGateMetadata\n";

@@ -392,7 +392,7 @@ entry:
 ; Function Attrs: mustprogress noinline uwtable
 define dso_local void @_Z7kernel3v.stub() local_unnamed_addr #0 section ".qbbs_text" {
 ; CHECK-LABEL: define dso_local void @_Z7kernel3v.stub
-; CHECK-SAME: () local_unnamed_addr #[[ATTR0]] section ".qbbs_text" {
+; CHECK-SAME: () local_unnamed_addr #[[ATTR1:[0-9]+]] section ".qbbs_text" {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[LOCAL_3:%.*]] = alloca [5 x i16], align 2
 ; CHECK-NEXT:    call void @llvm.lifetime.start.p0(i64 10, ptr nonnull [[LOCAL_3]]) #[[ATTR3:[0-9]+]]
@@ -433,7 +433,7 @@ declare void @llvm.lifetime.end.p0(i64 immarg, ptr nocapture) #1
 ; Function Attrs: mustprogress noinline uwtable
 define dso_local void @_Z7kernel2v.stub() local_unnamed_addr #0 section ".qbbs_text" {
 ; CHECK-LABEL: define dso_local void @_Z7kernel2v.stub
-; CHECK-SAME: () local_unnamed_addr #[[ATTR0]] section ".qbbs_text" {
+; CHECK-SAME: () local_unnamed_addr #[[ATTR1]] section ".qbbs_text" {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[LOCAL_3_I:%.*]] = alloca [5 x i16], align 2
 ; CHECK-NEXT:    [[LOCAL_2:%.*]] = alloca [5 x i16], align 2

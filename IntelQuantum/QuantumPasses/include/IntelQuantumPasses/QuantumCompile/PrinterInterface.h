@@ -22,7 +22,7 @@
 
 class PrinterInterface {
 public:
-  PrinterInterface(proofreader::ProofReader *read);
+  PrinterInterface(proofreader::ProofReader *read, std::string comp_pos = "");
   void addOptions(std::string option);
   void setOutputDir(std::string output_dir);
   void run();
@@ -31,6 +31,7 @@ private:
   proofreader::ProofReader *reader;
   std::vector<std::string> options;
   std::string output_dir;
+  std::string comp_pos;
 };
 
 #endif

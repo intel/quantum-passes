@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "GatePrinterPass.h"
+#include "ToffoliWithCircuitPass.h"
 #include "XToHZHPass.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
@@ -29,7 +30,11 @@ llvm::PassPluginLibraryInfo getExampleMultiPassPluginInfo() {
                   } else if (Name == "x-to-hzh") {
                     MPM.addPass(XToHZHPass());
                     return true;
+                  } else if (Name == "toffoli-circuit") {
+                    MPM.addPass(DecomposeToffoliCircuitPass());
+                    return true;
                   }
+                  return false;
                 });
           }};
 }

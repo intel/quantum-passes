@@ -83,7 +83,8 @@ static void printGateStats(std::string name, unsigned tot_count,
   errs() << "\tTotal number of gates: " << tot_count << "\n";
 
   for (auto &pair : count_map) {
-    errs() << "\t\tTotal number of " << GetNameFromGateIdentifier(pair.first)
+    errs() << "\t\tTotal number of "
+           << llvm::GetNameFromGateIdentifier(pair.first)
            << " gates: " << pair.second << "\n";
   }
 
@@ -191,7 +192,7 @@ INITIALIZE_PASS_END(QuantumKernelStatsPrintLegacyPass, "q-stats-print",
 
 PreservedAnalyses QuantumKernelStatsPrintPass::run(Module &M,
                                                    ModuleAnalysisManager &MAM) {
-  QuantumModuleProxy QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
+  QuantumModuleProxy &QMP = MAM.getResult<QuantumCompilerLinkageAnalysis>(M);
   QuantumKernelStatsPrint(*QMP.QM);
 
   return PreservedAnalyses::all();

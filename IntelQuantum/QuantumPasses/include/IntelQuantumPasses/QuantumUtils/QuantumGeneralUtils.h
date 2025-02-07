@@ -25,6 +25,8 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include <map>
+
 namespace llvm {
 namespace aqcc {
 
@@ -63,6 +65,10 @@ const std::string RELEASE_ALL_FRONT = "release_quantum_state";
 /// one quantum kernel into the new one. Use this with caution as it assumes the
 /// BB passed has a return instruction, and typically invalidates the quantum
 /// kernel it is coming from.
+Function *createEmptyQKernel(std::string name, Module &M,
+                             SmallVector<Type *> &TypeArray,
+                             BasicBlock * = nullptr, bool mangle = true);
+
 Function *createEmptyQKernel(std::string name, Module &M,
                              BasicBlock * = nullptr, bool mangle = true);
 
@@ -104,11 +110,16 @@ bool passesQbitsByValue(Function &F);
 /// Performs a recursive DFS to verify that every branch passes through elements
 /// between first iterator and exclsively the last iterator returns true if
 /// verification pass, and false otherwise.
-bool verifyLinearChain(BasicBlock *, std::set<BasicBlock *> &,
-                       std::vector<QBBIter>::reverse_iterator,
-                       std::vector<QBBIter>::reverse_iterator);
+bool verifyLinearChain(
+    BasicBlock *, std::set<BasicBlock *> &,
+    std::map<std::pair<BasicBlock *, Instruction *>, bool> &Cache,
+    std::vector<QBBIter>::reverse_iterator,
+    std::vector<QBBIter>::reverse_iterator);
 
 // Is the function a quantum kernel?
+inline bool isQBBSText(const Function &F) {
+  return F.getSection() == QBBS_TEXT_SECTION;
+}
 inline bool isQKernel(const Function &F) {
   return F.getSection() == QBBS_TEXT_SECTION && F.getName().contains(QKSTUB);
 }
@@ -174,7 +185,7 @@ void populateGateDurationsInScheduleBase(QuantumModule &QM,
 
 /// sets the slice index for the begining and the end quantum native intrinsic
 /// such that the entire QBB is a single slice
-void setSingleSliceBeginAndEnd(BasicBlock &BB);
+void setSingleSliceBeginAndEnd(BasicBlock &BB, bool CheckEnd = false);
 
 /// sets the slice index for every quantum native intrinsic such that every
 /// instruction is in its own slice
@@ -183,6 +194,11 @@ void setSerializedSlicing(BasicBlock &BB);
 std::unique_ptr<Module> separateQuantumFromClassicalModule(Module &M);
 
 void displayErrorAndExit(std::string PassName, std::string ErrMsg);
+
+void updateGatesForBBs(std::vector<BasicBlock *> &BBs,
+                       std::vector<Instruction *> &ValsToCheck);
+
+void updateGatesForBB(BasicBlock &BB, std::vector<Instruction *> &ValsToCheck);
 
 } // namespace aqcc
 } // namespace llvm
